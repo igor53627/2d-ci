@@ -67,6 +67,7 @@
   .actor.charlie{ border-left: 3px solid #56d364; }
   .actor.new-addr { border-left: 3px solid #768390; }
   .actor.htlc { border-left: 3px solid #0d9488; background: #0d2d2d; }
+  .actor.verifier { border-left: 3px solid #e5534b; }
 
   /* Assertions */
   .assertions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
@@ -105,11 +106,11 @@
   </div>
   <div class="header-row">
     <div class="stats">
-      <div class="stat"><div class="num">24</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
-      <div class="stat"><div class="num">8</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
-      <div class="stat"><div class="num">24</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
+      <div class="stat"><div class="num">29</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
+      <div class="stat"><div class="num">10</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
+      <div class="stat"><div class="num">29</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
       <div class="stat"><div class="num">0</div><div class="label" style="color:#f85149"><span class="en">Failing</span><span class="ru">Ошибки</span></div></div>
-      <div class="stat"><div class="num">~2.6s</div><div class="label"><span class="en">Runtime</span><span class="ru">Время</span></div></div>
+      <div class="stat"><div class="num">~2.7s</div><div class="label"><span class="en">Runtime</span><span class="ru">Время</span></div></div>
     </div>
     <div class="lang-toggle">
       <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
@@ -1225,6 +1226,264 @@
       <div class="assertions">
         <span class="assert-pill">accounts + htlc_locked == initial (mid-lock)</span>
         <span class="assert-pill">accounts == initial (post-claim)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 9: BlockFeed Integration -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">9. BlockFeed Integration</span>
+      <span class="ru">9. Интеграция BlockFeed</span>
+      <span class="badge proto-badge">
+        <span class="en">1 test</span>
+        <span class="ru">1 тест</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">BlockFeed returns produced blocks with correct structure</span>
+        <span class="ru">BlockFeed возвращает созданные блоки с корректной структурой</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          After producing blocks via RPC transactions and <code>produce_block</code>, this test queries
+          <code>BlockFeed.get_blocks</code> to verify the block feed returns the correct payloads. It checks
+          that the funding block contains 3 transactions, the transfer block contains 2, and that critical
+          fields &mdash; hash (32 bytes), state_root, transactions_root, and parent_hash linkage &mdash; are
+          all present and correct. This is the API that verifier nodes use to catch up from upstream, so its
+          output must exactly match what the producer committed.
+        </span>
+        <span class="ru">
+          После создания блоков через RPC-транзакции и <code>produce_block</code> тест запрашивает
+          <code>BlockFeed.get_blocks</code> и проверяет корректность возвращаемых payload-ов. Проверяется,
+          что блок финансирования содержит 3 транзакции, блок переводов &mdash; 2, а ключевые поля &mdash;
+          hash (32 байта), state_root, transactions_root и связка parent_hash &mdash; присутствуют и
+          корректны. Это тот самый API, через который верифицирующие узлы синхронизируются с upstream,
+          поэтому его выход должен точно совпадать с тем, что зафиксировал producer.
+        </span>
+      </div>
+      <div class="block-visual">
+        <div class="block-label">
+          <span class="en">Block #1 &mdash; Funding (3 txs)</span>
+          <span class="ru">Блок #1 &mdash; Финансирование (3 tx)</span>
+        </div>
+        <div class="block-txs">
+          <span class="block-tx">tx0: Minter&rarr;Alice</span>
+          <span class="block-tx">tx1: Minter&rarr;Bob</span>
+          <span class="block-tx">tx2: Minter&rarr;Charlie</span>
+        </div>
+      </div>
+      <div class="block-visual">
+        <div class="block-label">
+          <span class="en">Block #2 &mdash; Transfers (2 txs)</span>
+          <span class="ru">Блок #2 &mdash; Переводы (2 tx)</span>
+        </div>
+        <div class="block-txs">
+          <span class="block-tx">tx0: Alice&rarr;Bob</span>
+          <span class="block-tx">tx1: Bob&rarr;Charlie</span>
+        </div>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">blocks.length == 2</span>
+        <span class="assert-pill">funding.txs == 3</span>
+        <span class="assert-pill">transfer.txs == 2</span>
+        <span class="assert-pill">hash: 32 bytes</span>
+        <span class="assert-pill">parent_hash linkage OK</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 10: Verifier Replay -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">10. Verifier Replay</span>
+      <span class="ru">10. Воспроизведение верификатором</span>
+      <span class="badge htlc-badge">
+        <span class="en">4 tests</span>
+        <span class="ru">4 теста</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">verifier accepts independently computed valid block</span>
+        <span class="ru">верификатор принимает независимо вычисленный валидный блок</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The verifier receives a block payload that was independently computed via a rolled-back
+          savepoint &mdash; the same transactions are executed, state_root and block_hash are captured,
+          then the savepoint is undone. The verifier then replays the block from scratch on clean state:
+          it re-executes every transaction, recomputes the state root, and derives the block hash. If all
+          three match the claimed values, the block is accepted and the tip advances. This proves that
+          given identical inputs, producer and verifier arrive at the same deterministic output.
+        </span>
+        <span class="ru">
+          Верификатор получает payload блока, вычисленный независимо через откатываемый savepoint:
+          транзакции исполняются, state_root и block_hash фиксируются, затем savepoint откатывается.
+          Верификатор проигрывает блок с нуля на чистом состоянии: заново исполняет каждую транзакцию,
+          пересчитывает state root и вычисляет хэш блока. Если все три значения совпадают с заявленными,
+          блок принимается и tip продвигается. Это доказывает, что при одинаковых входных данных producer
+          и verifier приходят к одному и тому же детерминированному результату.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor minter">Producer</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">block payload</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor verifier">Verifier</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">VERIFY</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">ACCEPT</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok, 1}</span>
+        <span class="assert-pill">tip.number == 1</span>
+        <span class="assert-pill">tip.hash == payload.hash</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">verifier replays multi-block sequence</span>
+        <span class="ru">верификатор воспроизводит последовательность из нескольких блоков</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Three blocks are verified in sequence, each transferring 100 USDC from the minter to a different
+          recipient (Alice, Bob, Charlie). After each <code>verify_and_commit</code>, the verifier's tip
+          advances and the account state updates. This tests that the verifier correctly maintains state
+          across multiple blocks &mdash; nonces increment, balances accumulate, and the parent_hash chain
+          stays intact through the entire sequence.
+        </span>
+        <span class="ru">
+          Три блока верифицируются последовательно, каждый переводит 100 USDC от minter разным получателям
+          (Alice, Bob, Charlie). После каждого <code>verify_and_commit</code> tip верификатора
+          продвигается, состояние аккаунтов обновляется. Тест проверяет, что верификатор корректно
+          поддерживает состояние через несколько блоков &mdash; nonce-ы растут, балансы накапливаются,
+          цепочка parent_hash остаётся целой на протяжении всей последовательности.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor minter">Minter</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">100 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor alice">Alice</span>
+        <span style="color:#484f58; margin: 0 0.3rem;">(block 1)</span>
+      </div>
+      <div class="flow">
+        <span class="actor minter">Minter</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">100 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#484f58; margin: 0 0.3rem;">(block 2)</span>
+      </div>
+      <div class="flow">
+        <span class="actor minter">Minter</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">100 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor charlie">Charlie</span>
+        <span style="color:#484f58; margin: 0 0.3rem;">(block 3)</span>
+      </div>
+      <div class="flow" style="margin-top: 0.3rem;">
+        <span class="actor verifier">Verifier</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">VERIFY &times;3</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">ALL ACCEPTED</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">Alice == 100</span>
+        <span class="assert-pill">Bob == 100</span>
+        <span class="assert-pill">Charlie == 100</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">verifier rejects tampered state_root</span>
+        <span class="ru">верификатор отклоняет подменённый state_root</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A valid block payload is computed, then its state_root is replaced with a fake value. The verifier
+          re-executes the transactions and computes the real state root, which doesn't match the tampered
+          one. It returns <code>state_root_mismatch</code> and refuses to advance the tip. This is the core
+          security guarantee: a malicious producer cannot lie about the post-execution state without being
+          caught by every verifier in the network.
+        </span>
+        <span class="ru">
+          Вычисляется валидный payload блока, затем его state_root подменяется фиктивным значением.
+          Верификатор заново исполняет транзакции, вычисляет реальный state root &mdash; он не совпадает
+          с подменённым. Возвращается <code>state_root_mismatch</code>, tip не продвигается. Это ключевая
+          гарантия безопасности: злонамеренный producer не может соврать о состоянии после исполнения &mdash;
+          каждый верификатор в сети это обнаружит.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor minter">Producer</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">valid block</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">tamper state_root</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor verifier">Verifier</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">VERIFY</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">REJECTED</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, {:state_root_mismatch, _}}</span>
+        <span class="assert-pill">tip == 0</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">verifier rejects tampered block_hash</span>
+        <span class="ru">верификатор отклоняет подменённый block_hash</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Similar to the state_root test, but the block hash itself is replaced. The verifier recomputes the
+          hash from the block's components (number, parent_hash, timestamp, transactions_root, state_root)
+          and finds a mismatch. Even if all individual fields are correct, a wrong hash means the block was
+          tampered with after construction. This prevents a subtle attack where a producer swaps in a
+          valid-looking block from a different chain fork.
+        </span>
+        <span class="ru">
+          Аналогично тесту с state_root, но подменяется сам хэш блока. Верификатор пересчитывает хэш из
+          компонентов блока (number, parent_hash, timestamp, transactions_root, state_root) и обнаруживает
+          несовпадение. Даже если все отдельные поля корректны, неправильный хэш означает, что блок был
+          изменён после построения. Это предотвращает атаку, при которой producer подставляет валидно
+          выглядящий блок из другого форка цепи.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor minter">Producer</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">valid block</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">tamper hash</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor verifier">Verifier</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">VERIFY</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">REJECTED</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, {:block_hash_mismatch, _}}</span>
       </div>
     </div>
   </div>
