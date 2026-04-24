@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Chain Integration Tests — Full Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, system-ui, sans-serif; background: #0f1117; color: #e1e4e8; line-height: 1.6; }
+
+  /* Language switching */
+  body.lang-en .ru { display: none; }
+  body.lang-ru .en { display: none; }
+
+  .header { background: linear-gradient(135deg, #1a1e2e 0%, #0d1117 100%); border-bottom: 1px solid #30363d; padding: 2rem 3rem; }
+  .header h1 { font-size: 1.8rem; font-weight: 700; color: #f0f3f6; }
+  .header .subtitle { color: #8b949e; margin-top: 0.3rem; font-size: 0.95rem; }
+  .header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1.2rem; }
+  .header .stats { display: flex; gap: 2rem; flex-wrap: wrap; }
+  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 0.7rem 1.2rem; }
+  .stat .num { font-size: 1.5rem; font-weight: 700; color: #58a6ff; }
+  .stat .label { font-size: 0.75rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .lang-toggle { display: flex; background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+  .lang-btn { background: transparent; border: none; color: #8b949e; font-size: 0.85rem; font-weight: 600; padding: 0.5rem 1rem; cursor: pointer; transition: background 0.2s, color 0.2s; letter-spacing: 0.03em; }
+  .lang-btn:hover { color: #e1e4e8; }
+  .lang-btn.active { background: #1f6feb; color: #fff; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+  /* Accounts legend */
+  .accounts { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .account { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 1rem 1.3rem; flex: 1; min-width: 180px; }
+  .account .name { font-weight: 700; font-size: 1.1rem; }
+  .account .addr { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #8b949e; word-break: break-all; margin-top: 0.3rem; }
+  .account .balance { color: #7ee787; font-size: 0.85rem; margin-top: 0.4rem; }
+  .minter .name { color: #f0883e; }
+  .alice .name  { color: #bc8cff; }
+  .bob .name    { color: #58a6ff; }
+  .charlie .name{ color: #56d364; }
+
+  /* Test groups */
+  .group { margin-bottom: 2.5rem; }
+  .group-title { font-size: 1.15rem; font-weight: 700; color: #f0f3f6; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 0.5rem; }
+  .group-title .badge { display: inline-block; font-size: 0.7rem; background: #1f6feb; color: #fff; padding: 0.15rem 0.5rem; border-radius: 10px; font-weight: 600; }
+  .group-title .proto-badge { background: #7c3aed; }
+  .group-title .htlc-badge { background: #0d9488; }
+
+  /* Test cards */
+  .test-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 1.3rem; margin-bottom: 0.8rem; transition: border-color 0.2s; }
+  .test-card:hover { border-color: #58a6ff; }
+  .test-name { font-weight: 600; font-size: 0.95rem; color: #f0f3f6; margin-bottom: 0.5rem; }
+  .test-name .pass { color: #3fb950; margin-right: 0.4rem; }
+
+  .explanation { font-size: 0.85rem; color: #b1bac4; margin-bottom: 0.7rem; line-height: 1.55; }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+  .flow .actor { display: inline-flex; align-items: center; gap: 0.3rem; background: #21262d; border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.8rem; font-weight: 600; }
+  .flow .arrow { color: #484f58; font-size: 1.1rem; }
+  .flow .amount { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 0.2rem 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #7ee787; }
+  .flow .fail-amount { background: #2d1117; border: 1px solid #5d2d2d; color: #f85149; }
+  .flow .htlc-op { background: #0d2d2d; border: 1px solid #0d9488; color: #5eead4; border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.78rem; font-weight: 600; }
+  .actor.minter { border-left: 3px solid #f0883e; }
+  .actor.alice  { border-left: 3px solid #bc8cff; }
+  .actor.bob    { border-left: 3px solid #58a6ff; }
+  .actor.charlie{ border-left: 3px solid #56d364; }
+  .actor.new-addr { border-left: 3px solid #768390; }
+  .actor.htlc { border-left: 3px solid #0d9488; background: #0d2d2d; }
+
+  /* Assertions */
+  .assertions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .assert-pill { font-size: 0.72rem; background: #0d2818; border: 1px solid #1b4332; color: #7ee787; padding: 0.2rem 0.5rem; border-radius: 5px; font-family: 'JetBrains Mono', monospace; }
+  .assert-pill.fail { background: #2d1117; border-color: #5d2d2d; color: #f85149; }
+  .assert-pill.info { background: #0d1117; border-color: #30363d; color: #8b949e; }
+
+  /* Block diagram */
+  .block-visual { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 0.8rem 1rem; margin: 0.5rem 0; }
+  .block-label { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; }
+  .block-txs { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .block-tx { background: #161b22; border: 1px solid #30363d; border-radius: 5px; padding: 0.2rem 0.5rem; font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; }
+  .block-tx.tron { border-color: #7c3aed; color: #c4b5fd; }
+
+  .section-note { font-size: 0.82rem; color: #8b949e; margin-bottom: 0.5rem; font-style: italic; }
+
+  /* Timeline for HTLC */
+  .timeline { display: flex; align-items: center; gap: 0; margin: 0.6rem 0; }
+  .timeline-step { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+  .timeline-connector { width: 30px; height: 2px; background: #30363d; }
+  .timeline-step.active { border-color: #3fb950; color: #7ee787; }
+  .timeline-step.reject { border-color: #f85149; color: #f85149; }
+  .timeline-step.sleep { border-color: #f0883e; color: #f0883e; font-style: italic; }
+</style>
+</head>
+<body class="lang-ru">
+
+<div class="header">
+  <h1>
+    <span class="en">2D Chain &mdash; Integration Test Report</span>
+    <span class="ru">2D Chain &mdash; Отчёт по интеграционным тестам</span>
+  </h1>
+  <div class="subtitle">
+    <span class="en">End-to-end tests: ETH transfers, Tron protobuf, and HTLC atomic swaps</span>
+    <span class="ru">Сквозные тесты: ETH-переводы, Tron protobuf и атомарные свопы HTLC</span>
+  </div>
+  <div class="header-row">
+    <div class="stats">
+      <div class="stat"><div class="num">24</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
+      <div class="stat"><div class="num">8</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
+      <div class="stat"><div class="num">24</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
+      <div class="stat"><div class="num">0</div><div class="label" style="color:#f85149"><span class="en">Failing</span><span class="ru">Ошибки</span></div></div>
+      <div class="stat"><div class="num">~2.6s</div><div class="label"><span class="en">Runtime</span><span class="ru">Время</span></div></div>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn active" id="btn-ru" onclick="setLang('ru')">RU</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Accounts -->
+  <div class="accounts">
+    <div class="account minter">
+      <div class="name">Minter (HH #0)</div>
+      <div class="addr">0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266</div>
+      <div class="balance"><span class="en">Genesis: 1B USDC</span><span class="ru">Генезис: 1B USDC</span></div>
+    </div>
+    <div class="account alice">
+      <div class="name">Alice (HH #1)</div>
+      <div class="addr">0x70997970C51812dc3A010C7d01b50e0d17dc79C8</div>
+      <div class="balance"><span class="en">Funded: 10,000 USDC</span><span class="ru">Баланс: 10 000 USDC</span></div>
+    </div>
+    <div class="account bob">
+      <div class="name">Bob (HH #2)</div>
+      <div class="addr">0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC</div>
+      <div class="balance"><span class="en">Funded: 10,000 USDC</span><span class="ru">Баланс: 10 000 USDC</span></div>
+    </div>
+    <div class="account charlie">
+      <div class="name">Charlie (HH #3)</div>
+      <div class="addr">0x90F79bf6EB2c4f870365E785982E1f101E93b906</div>
+      <div class="balance"><span class="en">Funded: 10,000 USDC</span><span class="ru">Баланс: 10 000 USDC</span></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 1: Funding -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">1. Funding Accounts</span>
+      <span class="ru">1. Начальное финансирование</span>
+      <span class="badge">
+        <span class="en">1 test</span>
+        <span class="ru">1 тест</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">minter funds Alice, Bob, and Charlie</span>
+        <span class="ru">minter финансирует Alice, Bob и Charlie</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The genesis minter account holds all initial USDC supply. This test verifies that the minter
+          can distribute funds to three independent accounts in a single block. It exercises the full
+          RPC round-trip: <code>eth_sendRawTransaction</code> for each transfer, one
+          <code>produce_block</code> call to batch all three into block #1, then receipt and balance
+          checks to confirm each account received exactly 10,000 USDC.
+        </span>
+        <span class="ru">
+          Генезисный аккаунт minter держит весь начальный запас USDC. Тест проверяет, что minter
+          может раздать средства трём независимым аккаунтам в рамках одного блока. Проходит полный
+          цикл RPC: <code>eth_sendRawTransaction</code> для каждого перевода, один вызов
+          <code>produce_block</code> для упаковки всех трёх в блок #1, затем проверка receipt
+          и балансов &mdash; каждый аккаунт должен получить ровно 10 000 USDC.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor minter">Minter</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">10,000 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor alice">Alice</span>
+      </div>
+      <div class="flow">
+        <span class="actor minter">Minter</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">10,000 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="flow">
+        <span class="actor minter">Minter</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">10,000 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor charlie">Charlie</span>
+      </div>
+      <div class="block-visual">
+        <div class="block-label">
+          <span class="en">Block #1 (3 transactions)</span>
+          <span class="ru">Блок #1 (3 транзакции)</span>
+        </div>
+        <div class="block-txs">
+          <span class="block-tx">tx0: Minter&rarr;Alice</span>
+          <span class="block-tx">tx1: Minter&rarr;Bob</span>
+          <span class="block-tx">tx2: Minter&rarr;Charlie</span>
+        </div>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">receipt.status == 0x1 (x3)</span>
+        <span class="assert-pill">Alice == 10,000</span>
+        <span class="assert-pill">Bob == 10,000</span>
+        <span class="assert-pill">Charlie == 10,000</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 2: Basic Transfers -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">2. Basic Transfers</span>
+      <span class="ru">2. Базовые переводы</span>
+      <span class="badge">
+        <span class="en">3 tests</span>
+        <span class="ru">3 теста</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Alice sends 500 USDC to Bob</span>
+        <span class="ru">Alice отправляет 500 USDC Бобу</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The simplest possible transfer between two funded accounts. Alice signs an EIP-155 legacy
+          transaction with 500 USDC (encoded as 500 &times; 10<sup>18</sup> on the wire, scaled down to
+          6 decimals by the executor). After block production, the test verifies the receipt landed in
+          block #2 with status success, and that Alice's balance decreased while Bob's increased by
+          exactly the transfer amount.
+        </span>
+        <span class="ru">
+          Простейший перевод между двумя аккаунтами с балансом. Alice подписывает legacy-транзакцию
+          EIP-155 на 500 USDC (on-wire значение 500 &times; 10<sup>18</sup>, executor приводит к
+          6 десятичным). После формирования блока тест проверяет, что receipt попал в блок #2 со
+          статусом success, баланс Alice уменьшился, а баланс Bob вырос ровно на сумму перевода.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">500 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">receipt.status == 0x1</span>
+        <span class="assert-pill">blockNumber == 0x2</span>
+        <span class="assert-pill">Alice == 9,500</span>
+        <span class="assert-pill">Bob == 10,500</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Bob forwards 200 USDC to Charlie</span>
+        <span class="ru">Bob пересылает 200 USDC Чарли</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Tests a two-hop chain of custody: Alice first sends 500 USDC to Bob, then in a subsequent
+          block Bob forwards 200 USDC of his new balance to Charlie. This verifies that funds received
+          in one block are immediately spendable in the next, and that nonce tracking works correctly
+          when a previously-inactive account (Bob, nonce 0) makes its first outbound transaction.
+        </span>
+        <span class="ru">
+          Проверка двухшагового маршрута: Alice сначала отправляет 500 USDC Бобу, затем в следующем
+          блоке Bob пересылает 200 USDC из полученных средств Чарли. Тест подтверждает, что средства,
+          полученные в одном блоке, сразу доступны для трат в следующем, а nonce корректно
+          отслеживается при первой исходящей транзакции с ранее неактивного аккаунта (Bob, nonce 0).
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">500 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#484f58; margin: 0 0.3rem;">//</span>
+        <span class="actor bob">Bob</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">200 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor charlie">Charlie</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">receipt.status == 0x1</span>
+        <span class="assert-pill">blockNumber == 0x3</span>
+        <span class="assert-pill">Bob == 10,300</span>
+        <span class="assert-pill">Charlie == 10,200</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Charlie sends back to Alice (circular)</span>
+        <span class="ru">Charlie отправляет обратно Alice (кольцевой маршрут)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Completes a circular flow: Minter &rarr; Alice &rarr; Bob &rarr; Charlie &rarr; Alice. After
+          three sequential blocks of transfers, the test checks that all three accounts hold the expected
+          balances. This catches any double-spend or balance underflow bugs that might appear only when
+          funds traverse multiple accounts across multiple blocks.
+        </span>
+        <span class="ru">
+          Замыкает кольцевой маршрут: Minter &rarr; Alice &rarr; Bob &rarr; Charlie &rarr; Alice. После
+          трёх последовательных блоков с переводами тест проверяет, что балансы всех трёх аккаунтов
+          соответствуют ожидаемым. Это ловит баги двойной траты или отрицательных балансов, которые
+          проявляются только при прохождении средств через несколько аккаунтов и блоков.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#484f58; margin: 0 0.3rem;">//</span>
+        <span class="actor bob">Bob</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor charlie">Charlie</span>
+        <span style="color:#484f58; margin: 0 0.3rem;">//</span>
+        <span class="actor charlie">Charlie</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">100 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor alice">Alice</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">Alice == 9,600</span>
+        <span class="assert-pill">Bob == 10,300</span>
+        <span class="assert-pill">Charlie == 10,100</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 3: Multi-tx blocks -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">3. Multi-Transaction Blocks</span>
+      <span class="ru">3. Блоки с несколькими транзакциями</span>
+      <span class="badge">
+        <span class="en">2 tests</span>
+        <span class="ru">2 теста</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">three transfers packed in a single block</span>
+        <span class="ru">три перевода упакованы в один блок</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Three independent senders (Alice, Bob, Charlie) each submit a transfer before a single
+          <code>produce_block</code> call. The block producer executes all three transactions
+          sequentially within one SERIALIZABLE Postgres transaction. This tests that intra-block
+          execution is atomic and correct: Bob can spend his initial 10,000 even though Alice's transfer
+          to him hasn't been committed yet (it's executed earlier in the same block).
+        </span>
+        <span class="ru">
+          Три независимых отправителя (Alice, Bob, Charlie) отправляют переводы до единственного вызова
+          <code>produce_block</code>. Block producer выполняет все три транзакции последовательно внутри
+          одной SERIALIZABLE-транзакции Postgres. Тест проверяет атомарность внутри блока: Bob может
+          потратить свои начальные 10 000, хотя перевод от Alice к нему ещё не закоммичен (но уже
+          выполнен ранее в том же блоке).
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">100</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#484f58; margin: 0 0.5rem;">+</span>
+        <span class="actor bob">Bob</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">50</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor charlie">Charlie</span>
+        <span style="color:#484f58; margin: 0 0.5rem;">+</span>
+        <span class="actor charlie">Charlie</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">25</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor alice">Alice</span>
+      </div>
+      <div class="block-visual">
+        <div class="block-label">
+          <span class="en">Block #2 (single block, 3 transactions)</span>
+          <span class="ru">Блок #2 (один блок, 3 транзакции)</span>
+        </div>
+        <div class="block-txs">
+          <span class="block-tx">Alice&rarr;Bob 100</span>
+          <span class="block-tx">Bob&rarr;Charlie 50</span>
+          <span class="block-tx">Charlie&rarr;Alice 25</span>
+        </div>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">block.txs.length == 3</span>
+        <span class="assert-pill">Alice == 9,925</span>
+        <span class="assert-pill">Bob == 10,050</span>
+        <span class="assert-pill">Charlie == 10,025</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">sequential nonces from same sender in one block</span>
+        <span class="ru">последовательные nonce от одного отправителя в одном блоке</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Alice submits three transactions with incrementing nonces (0, 1, 2) to different recipients,
+          all included in a single block. The executor processes them in order: after each transaction
+          it increments Alice's nonce, so the next transaction's nonce check passes. This verifies that
+          the intra-block nonce state machine works correctly and doesn't require a new block between
+          each spend from the same sender.
+        </span>
+        <span class="ru">
+          Alice отправляет три транзакции с инкрементными nonce (0, 1, 2) разным получателям, и все
+          попадают в один блок. Executor обрабатывает их по порядку: после каждой транзакции nonce Alice
+          увеличивается, поэтому проверка nonce следующей транзакции проходит. Тест подтверждает, что
+          конечный автомат nonce внутри блока работает корректно и не требует нового блока между
+          последовательными тратами одного отправителя.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">10</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#484f58; margin: 0 0.3rem;">n=0</span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">20</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor charlie">Charlie</span>
+        <span style="color:#484f58; margin: 0 0.3rem;">n=1</span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">30</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#484f58; margin: 0 0.3rem;">n=2</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">all status == 0x1</span>
+        <span class="assert-pill">Alice == 9,940</span>
+        <span class="assert-pill">Bob == 10,040</span>
+        <span class="assert-pill">Charlie == 10,020</span>
+        <span class="assert-pill">Alice.nonce == 3</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 4: Edge Cases -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">4. Edge Cases</span>
+      <span class="ru">4. Граничные случаи</span>
+      <span class="badge">
+        <span class="en">4 tests</span>
+        <span class="ru">4 теста</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">insufficient balance &mdash; tx fails with status 0</span>
+        <span class="ru">недостаточный баланс &mdash; транзакция завершается со статусом 0</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Alice attempts to transfer 999,999 USDC while only holding 10,000. The executor detects the
+          insufficient balance during <code>charge_and_execute</code> and records the transaction as
+          failed (status 0) without modifying any account balances. This is critical for preventing
+          overdrafts: the chain must never create money by allowing a spend beyond the sender's balance.
+        </span>
+        <span class="ru">
+          Alice пытается перевести 999 999 USDC при балансе 10 000. Executor обнаруживает нехватку
+          средств на этапе <code>charge_and_execute</code> и фиксирует транзакцию как неуспешную
+          (status 0), не изменяя балансы. Это критично для защиты от овердрафта: чейн не должен
+          создавать деньги, разрешая трату сверх баланса отправителя.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice (10k)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">999,999 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">receipt.status == 0x0</span>
+        <span class="assert-pill">Alice unchanged == 10,000</span>
+        <span class="assert-pill">Bob unchanged == 10,000</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">wrong nonce &mdash; tx fails with status 0</span>
+        <span class="ru">неверный nonce &mdash; транзакция завершается со статусом 0</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Alice sends a transaction with nonce 42, but her on-chain nonce is 0. The executor rejects
+          the transaction immediately during nonce validation. Nonce enforcement prevents replay attacks
+          (resubmitting an old transaction) and ensures transactions are processed in the sender's
+          intended order. A wrong nonce never touches balances.
+        </span>
+        <span class="ru">
+          Alice отправляет транзакцию с nonce 42, хотя её текущий nonce на чейне равен 0. Executor
+          отклоняет транзакцию сразу на этапе валидации nonce. Контроль nonce защищает от replay-атак
+          (повторная отправка старой транзакции) и гарантирует обработку транзакций в порядке,
+          задуманном отправителем. Неверный nonce не затрагивает балансы.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">nonce=42 (expected 0)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">receipt.status == 0x0</span>
+        <span class="assert-pill">Alice unchanged == 10,000</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">zero-value transfer succeeds</span>
+        <span class="ru">перевод нулевой суммы проходит успешно</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A transfer of 0 USDC is technically valid and should succeed. This is important because
+          zero-value transactions are sometimes used to trigger nonce increments, interact with
+          precompiles via calldata, or simply as a "ping" to confirm an address is active. The test
+          verifies balances stay unchanged but the sender's nonce still increments.
+        </span>
+        <span class="ru">
+          Перевод 0 USDC формально валиден и должен завершиться успешно. Это важно, потому что
+          транзакции с нулевой суммой используют для инкремента nonce, взаимодействия с precompile
+          через calldata или как пинг для подтверждения активности адреса. Тест проверяет, что балансы
+          не изменились, но nonce отправителя увеличился.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">0 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">receipt.status == 0x1</span>
+        <span class="assert-pill">Alice == 10,000</span>
+        <span class="assert-pill">Bob == 10,000</span>
+        <span class="assert-pill">Alice.nonce == 1</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">transfer to new address creates account</span>
+        <span class="ru">перевод на новый адрес создаёт аккаунт</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          When funds are sent to an address that has never transacted on-chain, the executor must
+          auto-create the account record before crediting it. This test sends 50 USDC to a fresh
+          address (<code>0x0000...DEAD</code>) and confirms the account is created with the correct
+          balance. Without this implicit creation, transfers to new addresses would fail.
+        </span>
+        <span class="ru">
+          Когда средства отправляются на адрес, который ещё не участвовал в транзакциях, executor
+          должен автоматически создать запись аккаунта перед зачислением. Тест отправляет 50 USDC
+          на новый адрес (<code>0x0000...DEAD</code>) и убеждается, что аккаунт создан с правильным
+          балансом. Без неявного создания переводы на новые адреса завершались бы ошибкой.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">50 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor new-addr">0x0000...DEAD</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">receipt.status == 0x1</span>
+        <span class="assert-pill">new account == 50</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 5: Balance Conservation -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">5. Balance Conservation</span>
+      <span class="ru">5. Сохранение баланса</span>
+      <span class="badge">
+        <span class="en">1 test</span>
+        <span class="ru">1 тест</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">total supply unchanged after many transfers</span>
+        <span class="ru">общий объём эмиссии не изменился после множества переводов</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The most fundamental invariant of any monetary system: transfers must not create or destroy
+          money. This test snapshots the total supply (SUM of all account balances) before and after
+          five transfers spread across two blocks. Any bug in the debit/credit logic &mdash; rounding
+          errors, off-by-one in decimal scaling, or double-credits &mdash; would cause the totals to
+          diverge. The gasless fee model means no supply leaks to fee burns either.
+        </span>
+        <span class="ru">
+          Фундаментальный инвариант любой денежной системы: переводы не должны создавать или уничтожать
+          деньги. Тест фиксирует суммарный баланс всех аккаунтов до и после пяти переводов в двух
+          блоках. Любой баг в логике списания/зачисления &mdash; ошибки округления, сдвиг на единицу
+          при масштабировании десятичных, двойное зачисление &mdash; приведёт к расхождению сумм.
+          Благодаря модели без комиссий утечка через сжигание fee тоже исключена.
+        </span>
+      </div>
+      <div class="block-visual">
+        <div class="block-label">
+          <span class="en">Block #2</span>
+          <span class="ru">Блок #2</span>
+        </div>
+        <div class="block-txs">
+          <span class="block-tx">Alice&rarr;Bob 1,000</span>
+          <span class="block-tx">Bob&rarr;Charlie 500</span>
+          <span class="block-tx">Charlie&rarr;Alice 250</span>
+        </div>
+      </div>
+      <div class="block-visual">
+        <div class="block-label">
+          <span class="en">Block #3</span>
+          <span class="ru">Блок #3</span>
+        </div>
+        <div class="block-txs">
+          <span class="block-tx">Alice&rarr;Charlie 300</span>
+          <span class="block-tx">Bob&rarr;Alice 700</span>
+        </div>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">total_supply(before) == total_supply(after)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 6: RPC Consistency -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">6. RPC Query Consistency</span>
+      <span class="ru">6. Консистентность RPC-запросов</span>
+      <span class="badge">
+        <span class="en">4 tests</span>
+        <span class="ru">4 теста</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_getBalance matches DB after transfers</span>
+        <span class="ru">eth_getBalance совпадает с базой после переводов</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The chain stores balances in 6-decimal USDC internally, but the Ethereum RPC spec expects
+          18-decimal values (like wei). This test performs a transfer, then queries the balance via both
+          the direct DB path and the <code>eth_getBalance</code> RPC, and verifies the RPC result equals
+          the DB value multiplied by 10<sup>12</sup>. A mismatch here would mean wallets display wrong
+          balances.
+        </span>
+        <span class="ru">
+          Чейн хранит балансы в 6-десятичном формате USDC, но спецификация Ethereum RPC ожидает
+          18-десятичные значения (как wei). Тест выполняет перевод, затем запрашивает баланс напрямую
+          из базы и через <code>eth_getBalance</code> RPC и проверяет, что результат RPC равен значению
+          из БД, умноженному на 10<sup>12</sup>. Расхождение означало бы, что кошельки показывают
+          неверные балансы.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">777 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">rpc(eth_getBalance) == db_balance &times; 10^12</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_getTransactionCount tracks nonce</span>
+        <span class="ru">eth_getTransactionCount отслеживает nonce</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Wallets use <code>eth_getTransactionCount</code> to determine the next nonce for a new
+          transaction. After Alice sends two successful transactions, this test verifies the RPC returns
+          <code>0x2</code>, matching the expected on-chain nonce. If this value is stale or wrong,
+          wallet-submitted transactions would be rejected for nonce mismatch.
+        </span>
+        <span class="ru">
+          Кошельки вызывают <code>eth_getTransactionCount</code>, чтобы узнать следующий nonce для новой
+          транзакции. После двух успешных транзакций Alice тест проверяет, что RPC возвращает
+          <code>0x2</code> &mdash; ожидаемый nonce на чейне. Если значение устаревшее или ошибочное,
+          транзакции от кошелька будут отклонены из-за несовпадения nonce.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">eth_getTransactionCount == 0x2</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">block contains correct tx_count</span>
+        <span class="ru">блок содержит правильное количество транзакций</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Verifies that <code>eth_getBlockByNumber</code> returns the right number of transactions.
+          Two transfers from different senders are submitted and mined in one block; the RPC response
+          must list exactly two transaction hashes. Block explorers and indexers depend on this count
+          being accurate.
+        </span>
+        <span class="ru">
+          Проверяет, что <code>eth_getBlockByNumber</code> возвращает верное количество транзакций.
+          Два перевода от разных отправителей попадают в один блок; ответ RPC должен содержать ровно
+          два хеша транзакций. Блок-эксплореры и индексаторы зависят от точности этого значения.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">block.transactions.length == 2</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">chain integrity across multiple blocks</span>
+        <span class="ru">целостность цепочки блоков</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Each block stores the hash of the previous block as its <code>parent_hash</code>, forming an
+          immutable chain. This test produces four blocks (funding + three transfers), then walks the
+          entire chain from genesis to tip and asserts that every child block's <code>parent_hash</code>
+          matches its predecessor's hash. A broken link would mean the chain can't be verified and
+          block reorganization detection would fail.
+        </span>
+        <span class="ru">
+          Каждый блок хранит хеш предыдущего в поле <code>parent_hash</code>, формируя неизменяемую
+          цепочку. Тест создаёт четыре блока (финансирование + три перевода), затем обходит всю
+          цепочку от генезиса до последнего блока и проверяет, что <code>parent_hash</code> каждого
+          дочернего блока совпадает с хешем предшественника. Разрыв связи означал бы невозможность
+          верификации чейна и сломанное обнаружение реорганизаций.
+        </span>
+      </div>
+      <div class="block-visual">
+        <div class="block-label">
+          <span class="en">Chain linkage</span>
+          <span class="ru">Связность цепочки</span>
+        </div>
+        <div class="block-txs">
+          <span class="block-tx">B0 (genesis)</span>
+          <span style="color:#484f58;">&rarr;</span>
+          <span class="block-tx">B1 (fund)</span>
+          <span style="color:#484f58;">&rarr;</span>
+          <span class="block-tx">B2 (A&rarr;B)</span>
+          <span style="color:#484f58;">&rarr;</span>
+          <span class="block-tx">B3 (B&rarr;C)</span>
+          <span style="color:#484f58;">&rarr;</span>
+          <span class="block-tx">B4 (C&rarr;A)</span>
+        </div>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">blocks.length == 5</span>
+        <span class="assert-pill">child.parent_hash == parent.hash (&times;4)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 7: Tron Protobuf -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">7. Tron Protobuf Transfers</span>
+      <span class="ru">7. Переводы через Tron protobuf</span>
+      <span class="badge proto-badge">
+        <span class="en">4 tests</span>
+        <span class="ru">4 теста</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Alice sends 500 USDC to Bob via Tron wallet API</span>
+        <span class="ru">Alice отправляет 500 USDC Бобу через Tron wallet API</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The chain supports Tron-format transactions submitted via the <code>/wallet/broadcasttransaction</code>
+          endpoint, matching the real TronGrid API shape so that TronLink wallets can connect natively.
+          This test builds a Tron protobuf <code>TransferContract</code>, signs it with SHA-256 (Tron's
+          hash algorithm, unlike Ethereum's keccak256), and submits it through the HTTP endpoint. After
+          block production, it verifies that balances reflect the transfer just as they would for an ETH
+          transaction.
+        </span>
+        <span class="ru">
+          Чейн принимает транзакции в Tron-формате через эндпоинт <code>/wallet/broadcasttransaction</code>,
+          повторяя формат TronGrid API, чтобы кошельки TronLink подключались без адаптеров.
+          Тест собирает protobuf-структуру <code>TransferContract</code>, подписывает её через SHA-256
+          (алгоритм хеширования Tron, в отличие от keccak256 у Ethereum) и отправляет через HTTP.
+          После формирования блока тест проверяет, что балансы изменились так же, как при обычной
+          ETH-транзакции.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">500 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#7c3aed; font-size:0.75rem; margin-left:0.3rem;">(tron_pb)</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">broadcast.result == true</span>
+        <span class="assert-pill">Alice == 9,500</span>
+        <span class="assert-pill">Bob == 10,500</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">mixed ETH and Tron transfers in the same block</span>
+        <span class="ru">ETH и Tron переводы в одном блоке</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The block producer must handle both transaction formats in a single block, dispatching each to
+          its respective decoder (RLP for ETH, protobuf for Tron). This test submits one ETH and one
+          Tron transfer, mines them together, and verifies both executed correctly. This proves the
+          <code>kind</code>-based dispatch in <code>BlockExecutor</code> works and that the two codepaths
+          don't interfere with each other's nonce or balance tracking.
+        </span>
+        <span class="ru">
+          Block producer должен обрабатывать оба формата транзакций в одном блоке, направляя каждую
+          на свой декодер (RLP для ETH, protobuf для Tron). Тест отправляет один ETH- и один
+          Tron-перевод, майнит их вместе и проверяет корректность обоих. Это доказывает, что
+          диспетчеризация по <code>kind</code> в <code>BlockExecutor</code> работает, а две ветки
+          кода не мешают друг другу в отслеживании nonce и балансов.
+        </span>
+      </div>
+      <div class="block-visual">
+        <div class="block-label">
+          <span class="en">Block #2 (mixed format)</span>
+          <span class="ru">Блок #2 (смешанный формат)</span>
+        </div>
+        <div class="block-txs">
+          <span class="block-tx">Alice&rarr;Bob 100 (eth_rlp)</span>
+          <span class="block-tx tron">Bob&rarr;Charlie 200 (tron_pb)</span>
+        </div>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">block.txs.length == 2</span>
+        <span class="assert-pill">Alice == 9,900</span>
+        <span class="assert-pill">Bob == 9,900</span>
+        <span class="assert-pill">Charlie == 10,200</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">expired Tron transaction rejected at broadcast</span>
+        <span class="ru">истекшая Tron-транзакция отклоняется при broadcast</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Tron transactions carry an explicit validity window (timestamp to expiration). If the
+          expiration is already in the past when the transaction reaches the broadcast endpoint, it must
+          be rejected before even entering the pending queue. This test submits a transaction with both
+          timestamp and expiration set 60&ndash;120 seconds in the past and verifies the wallet API
+          returns error code 8 (timing error) without modifying any balances.
+        </span>
+        <span class="ru">
+          Tron-транзакции содержат явное окно валидности (timestamp до expiration). Если срок
+          истёк к моменту получения транзакции, она должна быть отклонена до попадания в очередь
+          ожидающих. Тест отправляет транзакцию с timestamp и expiration на 60&ndash;120 секунд
+          в прошлом и проверяет, что wallet API возвращает код ошибки 8 (timing error), не изменяя
+          балансы.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">expired (ts&minus;120s, exp&minus;60s)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">result == false</span>
+        <span class="assert-pill fail">code == 8</span>
+        <span class="assert-pill">Alice unchanged == 10,000</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Tron validity window > 24h rejected at broadcast</span>
+        <span class="ru">Tron-транзакция с окном валидности > 24 ч отклоняется при broadcast</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          To prevent transactions from being valid indefinitely (which would enable replay attacks long
+          after the sender forgot about them), the chain enforces a maximum 24-hour validity window. This
+          test submits a transaction with a 48-hour window and verifies rejection. The check happens at
+          broadcast time, so the transaction never enters <code>pending_transactions</code>.
+        </span>
+        <span class="ru">
+          Чтобы транзакции не оставались валидными бесконечно (что открыло бы путь replay-атакам
+          спустя долгое время после отправки), чейн ограничивает окно валидности 24 часами. Тест
+          отправляет транзакцию с 48-часовым окном и проверяет отклонение. Проверка происходит на
+          этапе broadcast, поэтому транзакция не попадает в <code>pending_transactions</code>.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">48h validity window</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">result == false</span>
+        <span class="assert-pill fail">code == 8</span>
+        <span class="assert-pill">Alice unchanged == 10,000</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 8: HTLC Atomic Swaps -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">8. HTLC Atomic Swaps</span>
+      <span class="ru">8. Атомарные свопы HTLC</span>
+      <span class="badge htlc-badge">
+        <span class="en">5 tests</span>
+        <span class="ru">5 тестов</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Alice locks, Bob claims with correct preimage</span>
+        <span class="ru">Alice блокирует средства, Bob забирает по правильному preimage</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The happy path of a hash time-locked contract: Alice locks 500 USDC into the HTLC precompile
+          by calling <code>lock(hash, receiver, amount, deadline)</code>, where <code>hash =
+          SHA-256(preimage)</code>. The funds leave Alice's account and are held by the contract. Bob
+          then calls <code>claim(hash, preimage)</code> with the correct secret, proving knowledge of
+          the preimage. The contract verifies SHA-256(preimage) matches the hash, transfers the locked
+          funds to Bob, and marks the swap as claimed. This is the primitive that enables trustless
+          cross-chain atomic swaps.
+        </span>
+        <span class="ru">
+          Основной сценарий hash time-locked contract: Alice блокирует 500 USDC в HTLC precompile
+          вызовом <code>lock(hash, receiver, amount, deadline)</code>, где <code>hash =
+          SHA-256(preimage)</code>. Средства уходят с аккаунта Alice и удерживаются контрактом. Затем
+          Bob вызывает <code>claim(hash, preimage)</code> с правильным секретом, доказывая знание
+          preimage. Контракт проверяет, что SHA-256(preimage) совпадает с хешем, переводит
+          заблокированные средства Бобу и отмечает своп как claimed. Это базовый примитив для
+          trustless кросс-чейн атомарных свопов.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">LOCK 500 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor htlc">HTLC</span>
+      </div>
+      <div class="flow">
+        <span class="actor bob">Bob</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">CLAIM (preimage)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor htlc">HTLC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">500 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">Alice == 9,500 (after lock)</span>
+        <span class="assert-pill">Bob == 10,500 (after claim)</span>
+        <span class="assert-pill">htlc.status == "claimed"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Alice locks, deadline passes, Alice refunds</span>
+        <span class="ru">Alice блокирует средства, дедлайн истекает, Alice возвращает</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The safety net for the sender: if Bob never claims (perhaps the cross-chain leg failed), Alice
+          must be able to recover her locked funds after the deadline. This test sets a tight 1-second
+          deadline, waits for it to pass, then calls <code>refund(hash)</code>. The contract checks that
+          the caller is the original sender and the deadline has elapsed, then returns the locked amount
+          to Alice. Without this mechanism, unclaimed HTLC locks would permanently freeze funds.
+        </span>
+        <span class="ru">
+          Страховочный механизм для отправителя: если Bob не забрал средства (например, кросс-чейн
+          этап не прошёл), Alice должна вернуть заблокированные средства после дедлайна. Тест задаёт
+          короткий дедлайн в 1 секунду, ждёт его истечения и вызывает <code>refund(hash)</code>.
+          Контракт проверяет, что вызывающий &mdash; оригинальный отправитель и дедлайн прошёл, после
+          чего возвращает заблокированную сумму Alice. Без этого механизма невостребованные HTLC-локи
+          замораживали бы средства навсегда.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">LOCK 300 USDC (1s deadline)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor htlc">HTLC</span>
+      </div>
+      <div class="timeline">
+        <span class="timeline-step active">
+          <span class="en">Lock OK</span>
+          <span class="ru">Lock OK</span>
+        </span>
+        <span class="timeline-connector"></span>
+        <span class="timeline-step sleep">
+          <span class="en">sleep 1.1s</span>
+          <span class="ru">sleep 1.1s</span>
+        </span>
+        <span class="timeline-connector"></span>
+        <span class="timeline-step active">
+          <span class="en">Refund OK</span>
+          <span class="ru">Refund OK</span>
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">REFUND</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor htlc">HTLC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">300 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor alice">Alice</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">Alice == 9,700 (after lock)</span>
+        <span class="assert-pill">Alice == 10,000 (after refund)</span>
+        <span class="assert-pill">htlc.status == "refunded"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Bob cannot claim with wrong preimage</span>
+        <span class="ru">Bob не может забрать средства с неверным preimage</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The security guarantee of HTLC: only the holder of the correct preimage can claim the funds.
+          This test locks 100 USDC with <code>hash = SHA-256(preimage)</code>, then Bob tries to claim
+          with a randomly generated wrong preimage. The contract computes SHA-256(wrong_preimage),
+          finds it doesn't match the stored hash, and reverts. The swap stays locked and Bob's balance
+          is unchanged. This prevents brute-force theft of locked funds.
+        </span>
+        <span class="ru">
+          Гарантия безопасности HTLC: только обладатель правильного preimage может забрать средства.
+          Тест блокирует 100 USDC с <code>hash = SHA-256(preimage)</code>, затем Bob пытается забрать
+          средства со случайным неверным preimage. Контракт вычисляет SHA-256(wrong_preimage),
+          обнаруживает несовпадение с хешем и откатывает операцию. Своп остаётся заблокированным,
+          баланс Bob не изменяется. Это защищает от перебора при попытке украсть заблокированные
+          средства.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">LOCK 100 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor htlc">HTLC</span>
+      </div>
+      <div class="flow">
+        <span class="actor bob">Bob</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">CLAIM (wrong preimage)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor htlc">HTLC</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">htlc.status == "locked" (unchanged)</span>
+        <span class="assert-pill">Bob unchanged == 10,000</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Bob cannot claim after deadline</span>
+        <span class="ru">Bob не может забрать средства после дедлайна</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Even with the correct preimage, a claim must arrive before the deadline. After the deadline,
+          only the sender can refund. This test locks funds with a 1-second deadline, waits for it to
+          pass, then submits a valid claim from Bob with the correct preimage. The contract rejects it
+          because the deadline has elapsed. This ensures the sender's refund window is protected: once
+          the deadline passes, the receiver can no longer front-run a refund.
+        </span>
+        <span class="ru">
+          Даже с правильным preimage claim должен прийти до дедлайна. После дедлайна только
+          отправитель может вызвать refund. Тест блокирует средства с дедлайном в 1 секунду, ждёт
+          его истечения и отправляет валидный claim от Bob с правильным preimage. Контракт отклоняет
+          его, потому что дедлайн прошёл. Это защищает окно refund отправителя: после дедлайна
+          получатель не может опередить refund своим claim.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">LOCK 100 USDC (1s deadline)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor htlc">HTLC</span>
+      </div>
+      <div class="timeline">
+        <span class="timeline-step active">
+          <span class="en">Lock OK</span>
+          <span class="ru">Lock OK</span>
+        </span>
+        <span class="timeline-connector"></span>
+        <span class="timeline-step sleep">
+          <span class="en">sleep 1.1s</span>
+          <span class="ru">sleep 1.1s</span>
+        </span>
+        <span class="timeline-connector"></span>
+        <span class="timeline-step reject">
+          <span class="en">Claim REJECTED</span>
+          <span class="ru">Claim REJECTED</span>
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">htlc.status == "locked" (unchanged)</span>
+        <span class="assert-pill">Bob unchanged == 10,000</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">balance conservation through lock-claim cycle</span>
+        <span class="ru">сохранение баланса в цикле lock-claim</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          HTLC operations move funds between accounts and the contract's escrow. This test verifies that
+          the total monetary supply is conserved throughout the entire lifecycle: after locking 1,000 USDC,
+          the sum of all account balances plus locked HTLC amounts must equal the initial total supply.
+          After Bob claims, the funds return to the account system and the simple account-only sum must
+          match again. Any leakage in the lock/claim path would be caught here.
+        </span>
+        <span class="ru">
+          Операции HTLC перемещают средства между аккаунтами и эскроу контракта. Тест проверяет, что
+          суммарная денежная масса сохраняется на протяжении всего жизненного цикла: после блокировки
+          1 000 USDC сумма балансов всех аккаунтов плюс заблокированные суммы HTLC должна равняться
+          начальному объёму эмиссии. После claim Боба средства возвращаются в систему аккаунтов, и
+          простая сумма балансов снова должна сойтись. Любая утечка на пути lock/claim будет поймана
+          этим тестом.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">LOCK 1,000</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor htlc">HTLC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">CLAIM</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">accounts + htlc_locked == initial (mid-lock)</span>
+        <span class="assert-pill">accounts == initial (post-claim)</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function setLang(lang) {
+  document.body.className = 'lang-' + lang;
+  document.getElementById('btn-en').className = 'lang-btn' + (lang === 'en' ? ' active' : '');
+  document.getElementById('btn-ru').className = 'lang-btn' + (lang === 'ru' ? ' active' : '');
+}
+</script>
+</body>
+</html>
