@@ -106,9 +106,9 @@
   </div>
   <div class="header-row">
     <div class="stats">
-      <div class="stat"><div class="num">29</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
+      <div class="stat"><div class="num">31</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
       <div class="stat"><div class="num">10</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
-      <div class="stat"><div class="num">29</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
+      <div class="stat"><div class="num">31</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
       <div class="stat"><div class="num">0</div><div class="label" style="color:#f85149"><span class="en">Failing</span><span class="ru">Ошибки</span></div></div>
       <div class="stat"><div class="num">~2.7s</div><div class="label"><span class="en">Runtime</span><span class="ru">Время</span></div></div>
     </div>
@@ -822,8 +822,8 @@
       <span class="en">7. Tron Protobuf Transfers</span>
       <span class="ru">7. Переводы через Tron protobuf</span>
       <span class="badge proto-badge">
-        <span class="en">4 tests</span>
-        <span class="ru">4 теста</span>
+        <span class="en">6 tests</span>
+        <span class="ru">6 тестов</span>
       </span>
     </div>
 
@@ -901,6 +901,95 @@
         <span class="assert-pill">Alice == 9,900</span>
         <span class="assert-pill">Bob == 9,900</span>
         <span class="assert-pill">Charlie == 10,200</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">ETH and Tron both credit the same receiver in one block</span>
+        <span class="ru">ETH и Tron зачисляют на один и тот же аккаунт в одном блоке</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Alice sends 300 USDC to Bob via ETH RLP, and Charlie sends 200 USDC to the same Bob via
+          Tron protobuf — all in a single block. The executor processes both transaction kinds
+          sequentially, and both credit the same account. This test catches bugs where one codepath
+          might overwrite the other's balance update instead of accumulating, or where the account
+          row created by the first credit isn't visible to the second within the same SERIALIZABLE
+          transaction.
+        </span>
+        <span class="ru">
+          Alice отправляет 300 USDC Бобу через ETH RLP, а Charlie — 200 USDC тому же Бобу через
+          Tron protobuf, и всё в одном блоке. Executor обрабатывает оба формата последовательно,
+          оба зачисляют на один аккаунт. Тест ловит баги, при которых один codepath может перезаписать
+          обновление баланса от другого вместо накопления, или когда запись аккаунта, созданная первым
+          зачислением, не видна второму внутри той же SERIALIZABLE-транзакции.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">300 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#484f58; font-size:0.75rem; margin-left:0.3rem;">(eth_rlp)</span>
+      </div>
+      <div class="flow">
+        <span class="actor charlie">Charlie</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">200 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#7c3aed; font-size:0.75rem; margin-left:0.3rem;">(tron_pb)</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">Bob == 10,500</span>
+        <span class="assert-pill">Alice == 9,700</span>
+        <span class="assert-pill">Charlie == 9,800</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">balance contention — second tx fails when first drains the account</span>
+        <span class="ru">конкуренция за баланс — второй перевод падает, когда первый опустошает аккаунт</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Alice sends 9,999 USDC to Bob via ETH (leaving just 1 USDC), and simultaneously submits a
+          500 USDC Tron transfer to Charlie. Since the ETH transaction executes first and drains
+          nearly all of Alice's balance, the Tron transfer hits insufficient funds and fails with
+          status 0. This tests cross-format balance contention: the executor must not process the two
+          transactions in isolation — the second must see the state left by the first.
+        </span>
+        <span class="ru">
+          Alice отправляет 9 999 USDC Бобу через ETH (остаётся 1 USDC) и одновременно подаёт Tron-перевод
+          на 500 USDC Чарли. ETH-транзакция исполняется первой и почти полностью опустошает баланс,
+          поэтому Tron-перевод получает insufficient balance и падает со status 0. Тест проверяет
+          конкуренцию за баланс между форматами: executor не должен обрабатывать транзакции изолированно —
+          вторая обязана видеть состояние, оставленное первой.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">9,999 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#484f58; font-size:0.75rem; margin-left:0.3rem;">(eth_rlp)</span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">500 USDC (insufficient)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor charlie">Charlie</span>
+        <span style="color:#7c3aed; font-size:0.75rem; margin-left:0.3rem;">(tron_pb)</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">Alice == 1</span>
+        <span class="assert-pill">Bob == 19,999</span>
+        <span class="assert-pill">Charlie unchanged == 10,000</span>
       </div>
     </div>
 
