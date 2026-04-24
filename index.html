@@ -106,9 +106,9 @@
   </div>
   <div class="header-row">
     <div class="stats">
-      <div class="stat"><div class="num">31</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
+      <div class="stat"><div class="num">33</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
       <div class="stat"><div class="num">10</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
-      <div class="stat"><div class="num">31</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
+      <div class="stat"><div class="num">33</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
       <div class="stat"><div class="num">0</div><div class="label" style="color:#f85149"><span class="en">Failing</span><span class="ru">Ошибки</span></div></div>
       <div class="stat"><div class="num">~2.7s</div><div class="label"><span class="en">Runtime</span><span class="ru">Время</span></div></div>
     </div>
@@ -481,8 +481,8 @@
       <span class="en">4. Edge Cases</span>
       <span class="ru">4. Граничные случаи</span>
       <span class="badge">
-        <span class="en">4 tests</span>
-        <span class="ru">4 теста</span>
+        <span class="en">6 tests</span>
+        <span class="ru">6 тестов</span>
       </span>
     </div>
 
@@ -614,6 +614,85 @@
       <div class="assertions">
         <span class="assert-pill">receipt.status == 0x1</span>
         <span class="assert-pill">new account == 50</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">duplicate tx submission — balance debited only once</span>
+        <span class="ru">повторная отправка транзакции — баланс списывается один раз</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The same signed transaction is submitted twice via <code>eth_sendRawTransaction</code>.
+          Both calls return the same tx hash (it's deterministic: keccak256 of raw bytes). The
+          <code>pending_transactions</code> table has a unique constraint on hash, and the RPC
+          handler uses <code>on_conflict: :nothing</code> to silently ignore the duplicate. After
+          block production, only one transaction appears in the block and Alice's balance is debited
+          exactly once. Without this protection, a node operator or network relay could replay a
+          user's transaction to drain their account.
+        </span>
+        <span class="ru">
+          Одна и та же подписанная транзакция отправляется дважды через <code>eth_sendRawTransaction</code>.
+          Оба вызова возвращают одинаковый tx hash (он детерминирован: keccak256 от raw-байтов).
+          В таблице <code>pending_transactions</code> стоит unique constraint на hash, а RPC-обработчик
+          использует <code>on_conflict: :nothing</code> для бесшумного игнорирования дубликата. После
+          формирования блока транзакция появляется ровно один раз, баланс Alice списывается однократно.
+          Без этой защиты оператор ноды или сетевой relay мог бы переиграть транзакцию пользователя
+          и опустошить его аккаунт.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">100 USDC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+        <span style="color:#484f58; font-size:0.75rem; margin-left:0.3rem;">&times;2</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">hash1 == hash2</span>
+        <span class="assert-pill">Alice == 9,900</span>
+        <span class="assert-pill">Bob == 10,100</span>
+        <span class="assert-pill">nonce == 1</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">cross-chain replay — tx signed for chain_id 1 rejected at RPC</span>
+        <span class="ru">кросс-чейн replay — транзакция с chain_id 1 отклоняется на уровне RPC</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A transaction is signed with Ethereum mainnet's chain_id (1) instead of 2D's chain_id
+          (11565). The RPC handler extracts the chain_id from the EIP-155 <code>v</code> field and
+          rejects the transaction before it enters the pending queue. Without this check, a
+          transaction broadcast on Ethereum mainnet could be replayed on 2D if the sender holds
+          the same private key on both chains — the EIP-155 signature scheme recovers the correct
+          address regardless of which chain the tx was signed for.
+        </span>
+        <span class="ru">
+          Транзакция подписана с chain_id Ethereum mainnet (1) вместо chain_id 2D (11565).
+          RPC-обработчик извлекает chain_id из поля <code>v</code> по EIP-155 и отклоняет
+          транзакцию до попадания в очередь pending. Без этой проверки транзакция из Ethereum
+          mainnet могла бы быть переиграна на 2D, если отправитель владеет тем же приватным ключом
+          на обеих сетях — EIP-155 восстанавливает корректный адрес независимо от того, для какой
+          сети подписана транзакция.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor alice">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount fail-amount">chain_id=1 (expected 11565)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bob">Bob</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">error.code == -32000</span>
+        <span class="assert-pill fail">message =~ "wrong chain_id"</span>
+        <span class="assert-pill">Alice unchanged == 10,000</span>
+        <span class="assert-pill">Bob unchanged == 10,000</span>
       </div>
     </div>
   </div>
