@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -101,14 +101,14 @@
     <span class="ru">2D Chain &mdash; Отчёт по интеграционным тестам</span>
   </h1>
   <div class="subtitle">
-    <span class="en">End-to-end tests: ETH transfers, Tron protobuf, and HTLC atomic swaps</span>
+    <span class="en">End-to-end tests: ETH transfers, Tron protobuf, HTLC atomic swaps, and verifier operations</span>
     <span class="ru">Сквозные тесты: ETH-переводы, Tron protobuf и атомарные свопы HTLC</span>
   </div>
   <div class="header-row">
     <div class="stats">
-      <div class="stat"><div class="num">33</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
-      <div class="stat"><div class="num">10</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
-      <div class="stat"><div class="num">33</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
+      <div class="stat"><div class="num">40</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
+      <div class="stat"><div class="num">11</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
+      <div class="stat"><div class="num">40</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
       <div class="stat"><div class="num">0</div><div class="label" style="color:#f85149"><span class="en">Failing</span><span class="ru">Ошибки</span></div></div>
       <div class="stat"><div class="num">~2.7s</div><div class="label"><span class="en">Runtime</span><span class="ru">Время</span></div></div>
     </div>
@@ -1109,8 +1109,8 @@
 
     <div class="test-card">
       <div class="test-name"><span class="pass">PASS</span>
-        <span class="en">Tron validity window > 24h rejected at broadcast</span>
-        <span class="ru">Tron-транзакция с окном валидности > 24 ч отклоняется при broadcast</span>
+        <span class="en">Tron validity window &gt; 24h rejected at broadcast</span>
+        <span class="ru">Tron-транзакция с окном валидности &gt; 24 ч отклоняется при broadcast</span>
       </div>
       <div class="explanation">
         <span class="en">
@@ -1656,11 +1656,185 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 11: Verifier Operations (TASK-30) -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">11. Verifier Operations</span>
+      <span class="ru">11. Операционная устойчивость верификатора</span>
+      <span class="badge htlc-badge">
+        <span class="en">7 tests</span>
+        <span class="ru">7 тестов</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">verifier rejects tampered transactions_root</span>
+        <span class="ru">верификатор отклоняет подменённый transactions_root</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The verifier now checks transactions_root in addition to state_root and block_hash. A valid
+          payload with a tampered transactions_root is rejected before block_hash verification, catching
+          payloads where the transaction list was replaced but the block hash was not recomputed.
+        </span>
+        <span class="ru">
+          Верификатор теперь проверяет transactions_root в дополнение к state_root и block_hash.
+          Валидный payload с подменённым transactions_root отклоняется до проверки block_hash,
+          перехватывая payload-ы, где список транзакций был заменён без пересчёта хэша блока.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, {:transactions_root_mismatch, _}}</span>
+        <span class="assert-pill">tip stays at 0</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">executor derives tx hash from raw bytes, ignores payload hash</span>
+        <span class="ru">исполнитель вычисляет хэш транзакции из raw, игнорирует хэш из payload</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The block executor now computes transaction hashes from raw bytes (keccak256 for ETH,
+          sha256 for Tron) instead of trusting the hash provided in the payload. A payload with
+          deliberately wrong tx hashes is still verified successfully because the executor
+          independently derives the correct hashes.
+        </span>
+        <span class="ru">
+          Исполнитель блоков теперь вычисляет хэши транзакций из raw-байтов (keccak256 для ETH,
+          sha256 для Tron) вместо доверия хэшу из payload. Payload с намеренно неверными хэшами
+          транзакций всё равно успешно верифицируется, потому что исполнитель независимо вычисляет
+          правильные хэши.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok, 1} with tampered tx hashes</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">executor rejects transaction with nil raw (missing raw data)</span>
+        <span class="ru">исполнитель отклоняет транзакцию с nil raw (отсутствуют raw-данные)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Pre-existing transactions with NULL raw (from before the migration that added the column)
+          caused FunctionClauseError in Crypto.to_hex(nil). Now the executor returns
+          {:error, :missing_raw_data} and records a failed transaction (status=0) instead of crashing.
+        </span>
+        <span class="ru">
+          Транзакции с NULL raw (из периода до миграции, добавившей колонку) вызывали
+          FunctionClauseError в Crypto.to_hex(nil). Теперь исполнитель возвращает
+          {:error, :missing_raw_data} и записывает неуспешную транзакцию (status=0) вместо краша.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">status == 0</span>
+        <span class="assert-pill">no crash</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_sendRawTransaction rejected in verifier mode</span>
+        <span class="ru">eth_sendRawTransaction отклоняется в режиме верификатора</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Verifier nodes are read-only replicas. State-mutating RPC methods (eth_sendRawTransaction,
+          broadcasttransaction) return an error when the node runs in verifier mode, preventing
+          accidental writes to a node that has no block producer.
+        </span>
+        <span class="ru">
+          Узлы-верификаторы являются read-only репликами. Мутирующие RPC-методы
+          (eth_sendRawTransaction, broadcasttransaction) возвращают ошибку в режиме верификатора,
+          предотвращая случайные записи на узле без block producer.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">error code -32601</span>
+        <span class="assert-pill">message: "verifier"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">overlong r/s signature component rejected</span>
+        <span class="ru">слишком длинный компонент подписи r/s отклоняется</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          RLP-decoded r/s scalars longer than 32 bytes are now rejected before calling pad_to_32,
+          which previously crashed with no matching function clause. This prevents a denial-of-service
+          vector via malformed transaction signatures.
+        </span>
+        <span class="ru">
+          RLP-декодированные скаляры r/s длиной более 32 байтов теперь отклоняются до вызова
+          pad_to_32, который ранее падал без подходящего clause. Это предотвращает вектор
+          отказа в обслуживании через некорректные подписи транзакций.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :overlong_signature_component}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">BlockFeed includes signature in transaction payloads</span>
+        <span class="ru">BlockFeed включает signature в payload транзакций</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          BlockFeed and finalize_block now include the :signature field in transaction payloads
+          broadcast to downstream verifiers. Without this, Tron transactions could not be
+          re-verified by chained verifiers (signature is needed to recover the sender).
+        </span>
+        <span class="ru">
+          BlockFeed и finalize_block теперь включают поле :signature в payload транзакций,
+          транслируемых нижестоящим верификаторам. Без этого Tron-транзакции не могли быть
+          повторно верифицированы цепочкой верификаторов (подпись нужна для восстановления отправителя).
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">tron_pb tx has signature</span>
+        <span class="assert-pill">signature: 65 bytes</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">finalize_block includes signature in broadcast payload</span>
+        <span class="ru">finalize_block включает signature в broadcast payload</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The payload returned by BlockExecutor.finalize_block (used by BlockStage.notify for
+          live broadcasts to subscribers) now includes the signature field for each transaction,
+          enabling verifier chaining for Tron transactions.
+        </span>
+        <span class="ru">
+          Payload, возвращаемый BlockExecutor.finalize_block (используется BlockStage.notify
+          для live-трансляций подписчикам), теперь включает поле signature для каждой транзакции,
+          обеспечивая цепочку верификации для Tron-транзакций.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">tx_payload.signature == sig</span>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
 function setLang(lang) {
   document.body.className = 'lang-' + lang;
+  document.documentElement.lang = lang;
   document.getElementById('btn-en').className = 'lang-btn' + (lang === 'en' ? ' active' : '');
   document.getElementById('btn-ru').className = 'lang-btn' + (lang === 'ru' ? ' active' : '');
 }
