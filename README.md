@@ -1,10 +1,10 @@
 # 2D Chain: Public Test Reports
 
-[![Tests](https://img.shields.io/badge/tests-49%20passing-brightgreen)](https://igor53627.github.io/2d-ci/) [![Groups](https://img.shields.io/badge/groups-13-blue)](https://igor53627.github.io/2d-ci/)
+[![Tests](https://img.shields.io/badge/tests-49%20passing-brightgreen)](https://igor53627.github.io/2d-ci/) [![Groups](https://img.shields.io/badge/groups-13-blue)](https://igor53627.github.io/2d-ci/) [![Docs](https://img.shields.io/badge/docs-online-blue)](https://igor53627.github.io/2d-docs/)
 
 Browser-friendly snapshots of the [2D Chain](https://github.com/igor53627/2d) integration test suite, with EN/RU explanations and assertion details.
 
-**[→ View live report](https://igor53627.github.io/2d-ci/)**
+**[→ View live report](https://igor53627.github.io/2d-ci/)** · **[→ Architecture docs](https://igor53627.github.io/2d-docs/)**
 
 ## What's here
 
