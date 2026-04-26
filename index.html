@@ -101,14 +101,14 @@
     <span class="ru">2D Chain &mdash; Отчёт по интеграционным тестам</span>
   </h1>
   <div class="subtitle">
-    <span class="en">End-to-end tests: ETH transfers, Tron protobuf, HTLC atomic swaps, and verifier operations</span>
-    <span class="ru">Сквозные тесты: ETH-переводы, Tron protobuf и атомарные свопы HTLC</span>
+    <span class="en">End-to-end tests: ETH transfers, Tron protobuf, HTLC atomic swaps, verifier operations, anti-spam throttle, and security audit</span>
+    <span class="ru">Сквозные тесты: ETH-переводы, Tron protobuf, атомарные свопы HTLC, операции верификатора, антиспам-throttle и аудит безопасности</span>
   </div>
   <div class="header-row">
     <div class="stats">
-      <div class="stat"><div class="num">40</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
-      <div class="stat"><div class="num">11</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
-      <div class="stat"><div class="num">40</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
+      <div class="stat"><div class="num">49</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
+      <div class="stat"><div class="num">13</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
+      <div class="stat"><div class="num">49</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
       <div class="stat"><div class="num">0</div><div class="label" style="color:#f85149"><span class="en">Failing</span><span class="ru">Ошибки</span></div></div>
       <div class="stat"><div class="num">~2.7s</div><div class="label"><span class="en">Runtime</span><span class="ru">Время</span></div></div>
     </div>
@@ -1663,9 +1663,35 @@
       <span class="en">11. Verifier Operations</span>
       <span class="ru">11. Операционная устойчивость верификатора</span>
       <span class="badge htlc-badge">
-        <span class="en">7 tests</span>
-        <span class="ru">7 тестов</span>
+        <span class="en">8 tests</span>
+        <span class="ru">8 тестов</span>
       </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">verifier independently verifies genesis state_root and block_hash</span>
+        <span class="ru">верификатор независимо проверяет state_root и block_hash генезиса</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A fresh verifier with its own database recomputes the genesis state_root via
+          StateRoot.compute() and the genesis block_hash from header components, asserting
+          equality with the persisted row. This proves the verifier can bootstrap from an
+          empty database without trusting the producer's persisted hashes.
+        </span>
+        <span class="ru">
+          Свежий верификатор со своей БД пересчитывает state_root генезиса через
+          StateRoot.compute() и block_hash из компонентов заголовка, сверяясь со
+          строкой в базе. Это подтверждает, что верификатор может стартовать с пустой БД,
+          не доверяя сохранённым хэшам producer-узла.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">computed_state_root == genesis.state_root</span>
+        <span class="assert-pill">computed_hash == genesis.hash</span>
+        <span class="assert-pill">parent_hash == zero</span>
+      </div>
     </div>
 
     <div class="test-card">
@@ -1825,6 +1851,219 @@
       </div>
       <div class="assertions">
         <span class="assert-pill">tx_payload.signature == sig</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 12: Anti-spam Throttle (TASK-16) -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">12. Anti-spam Throttle</span>
+      <span class="ru">12. Антиспам-throttle</span>
+      <span class="badge">
+        <span class="en">2 tests</span>
+        <span class="ru">2 теста</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">throttled sender excluded from block, other senders unblocked</span>
+        <span class="ru">throttled-отправитель исключён из блока, другие отправители не блокируются</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          With gas_threshold lowered to 3, Alice submits 4 txs and 2 more after the first
+          block. The throttle defers Alice's later txs once the sliding window count exceeds
+          the threshold, so only the first 4 land. Bob submits independently and his tx lands
+          in the same block — confirming the throttle is per-sender, not global.
+        </span>
+        <span class="ru">
+          С gas_threshold = 3 Alice отправляет 4 транзакции и ещё 2 после первого блока.
+          Throttle откладывает её последние транзакции, как только счётчик в скользящем окне
+          превышает порог, поэтому в блоки попадают только первые 4. Bob отправляет
+          независимо, и его транзакция попадает в тот же блок — это подтверждает, что
+          throttle применяется к каждому отправителю отдельно, а не глобально.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">alice_included == 4</span>
+        <span class="assert-pill">bob_included == 1</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">gasless block verifies — fee=0 means deterministic state_root</span>
+        <span class="ru">gasless-блок верифицируется — fee=0 даёт детерминированный state_root</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The producer commits a payload with gas_price=0 and the verifier replays it from
+          raw bytes, computing a matching state_root. This proves the throttle is purely a
+          producer-local concern: the executor path has no ETS dependency, so verifier
+          replay is deterministic regardless of wall-clock skew across catch-up windows
+          (closes the bug_007 vector by design).
+        </span>
+        <span class="ru">
+          Producer коммитит payload с gas_price=0, верификатор воспроизводит его из raw-байт
+          и получает совпадающий state_root. Это доказывает, что throttle — исключительно
+          producer-local concern: путь исполнителя не зависит от ETS, поэтому верификация
+          детерминирована независимо от рассинхронизации wall-clock в окнах catch-up
+          (закрывает вектор bug_007 by design).
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">tx.status == 1</span>
+        <span class="assert-pill">tx.gas_price == 0</span>
+        <span class="assert-pill">verifier state_root matches</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 13: Security Audit (TASK-28) -->
+  <div class="group">
+    <div class="group-title">
+      <span class="en">13. Security Audit</span>
+      <span class="ru">13. Аудит безопасности</span>
+      <span class="badge">
+        <span class="en">6 tests</span>
+        <span class="ru">6 тестов</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_getLogs with malformed address returns error, not crash</span>
+        <span class="ru">eth_getLogs с некорректным адресом возвращает ошибку, не падает</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The eth_getLogs filter uses safe decoders (decode_address_safe / decode_hex_safe).
+          A malformed address like "not-a-valid-address" returns JSON-RPC error -32602
+          instead of crashing the request worker into a 500.
+        </span>
+        <span class="ru">
+          Фильтр eth_getLogs использует безопасные декодеры (decode_address_safe /
+          decode_hex_safe). Некорректный адрес "not-a-valid-address" возвращает JSON-RPC
+          ошибку -32602 вместо падения worker-а в 500.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">error code -32602</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_getLogs with malformed topic returns error, not crash</span>
+        <span class="ru">eth_getLogs с некорректным topic возвращает ошибку, не падает</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Same hardening covers topics: a malformed hex string like "zzz-bad-hex" is
+          rejected at the filter parser, not at the underlying SQL layer where it would
+          have surfaced as a less informative error.
+        </span>
+        <span class="ru">
+          То же самое для topics: некорректный hex "zzz-bad-hex" отклоняется на парсере
+          фильтра, а не на нижнем SQL-слое, где это всплыло бы менее информативной ошибкой.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">error code -32602</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_sendRawTransaction rejects stale nonce</span>
+        <span class="ru">eth_sendRawTransaction отклоняет устаревший nonce</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          After Alice submits and her tx lands, re-submitting the same nonce returns
+          "nonce too low" at RPC submission time. This blocks naive replay attempts
+          before they reach the pending pool.
+        </span>
+        <span class="ru">
+          После того как транзакция Alice попала в блок, повторная отправка с тем же
+          nonce возвращает "nonce too low" уже на этапе RPC-приёма. Это блокирует
+          наивные попытки replay-атаки до попадания в pending pool.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">message =~ "nonce too low"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_sendRawTransaction rejects nonce too far ahead</span>
+        <span class="ru">eth_sendRawTransaction отклоняет nonce, ушедший слишком далеко вперёд</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A nonce greater than account_nonce + 100 is rejected at submission. This caps
+          how many "future" pending rows a single sender can park in the pool, blocking
+          a mempool-pollution griefing vector while still allowing legitimate batched
+          submissions.
+        </span>
+        <span class="ru">
+          Nonce больше account_nonce + 100 отклоняется на приёме. Это ограничивает, сколько
+          "future" pending-строк один отправитель может оставить в пуле, блокируя вектор
+          mempool-pollution и при этом не мешая легитимным пакетным отправкам.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">message =~ "nonce too far ahead"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">stale pending transactions are cleaned up</span>
+        <span class="ru">устаревшие pending-транзакции вычищаются</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A pending row inserted with inserted_at older than 10 minutes is removed by
+          cleanup_stale_pending. The block producer runs this sweep every 30 blocks
+          (~60s), so a stuck high-nonce tx cannot wedge the pool indefinitely.
+        </span>
+        <span class="ru">
+          Pending-строка с inserted_at старше 10 минут удаляется cleanup_stale_pending.
+          Block producer запускает этот sweep каждые 30 блоков (~60с), поэтому застрявшая
+          транзакция с высоким nonce не может бесконечно держать пул занятым.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">pending count: 1 → 0</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_sendRawTransaction rejects oversized transaction</span>
+        <span class="ru">eth_sendRawTransaction отклоняет слишком большие транзакции</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Raw payloads above the configured 4 KB cap are rejected before hex decode
+          (the cap applies to the hex-string size so the actual byte budget is honored).
+          This blocks an obvious DoS vector via giant calldata before any work is done.
+        </span>
+        <span class="ru">
+          Raw-payload-ы больше настроенного лимита 4 KB отклоняются до hex-декодирования
+          (лимит применяется к размеру hex-строки, так что реальный байтовый бюджет
+          соблюдается). Это блокирует очевидный DoS-вектор через гигантский calldata до
+          выполнения какой-либо работы.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">message =~ "too large"</span>
       </div>
     </div>
   </div>
