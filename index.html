@@ -91,6 +91,18 @@
   .timeline-step.active { border-color: #3fb950; color: #7ee787; }
   .timeline-step.reject { border-color: #f85149; color: #f85149; }
   .timeline-step.sleep { border-color: #f0883e; color: #f0883e; font-style: italic; }
+
+  /* Layout: sidebar + content */
+  .layout { display: flex; max-width: 1500px; margin: 0 auto; align-items: flex-start; }
+  .layout .container { max-width: none; flex: 1; min-width: 0; }
+  .toc { position: sticky; top: 1.5rem; align-self: flex-start; width: 240px; flex-shrink: 0; padding: 2rem 0 2rem 2rem; max-height: calc(100vh - 3rem); overflow-y: auto; }
+  .toc-title { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.7rem; padding-left: 0.6rem; }
+  .toc nav ul { list-style: none; padding: 0; margin: 0; }
+  .toc nav li { margin-bottom: 0.15rem; }
+  .toc nav a { display: block; color: #8b949e; text-decoration: none; font-size: 0.82rem; padding: 0.35rem 0.6rem; border-radius: 6px; border-left: 2px solid transparent; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .toc nav a:hover { color: #e1e4e8; background: #161b22; }
+  .toc nav a.active { color: #58a6ff; background: #161b22; border-left-color: #58a6ff; }
+  @media (max-width: 1000px) { .toc { display: none; } .layout .container { max-width: 1200px; padding: 2rem; margin: 0 auto; } }
 </style>
 </head>
 <body class="lang-ru">
@@ -119,6 +131,32 @@
   </div>
 </div>
 
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-title">
+    <span class="en">Test groups</span>
+    <span class="ru">Группы тестов</span>
+  </div>
+  <nav>
+    <ul>
+      <li><a href="#group-1"><span class="en">1. Funding Accounts</span><span class="ru">1. Начальное финансирование</span></a></li>
+      <li><a href="#group-2"><span class="en">2. Basic Transfers</span><span class="ru">2. Базовые переводы</span></a></li>
+      <li><a href="#group-3"><span class="en">3. Multi-Transaction Blocks</span><span class="ru">3. Блоки с несколькими транзакциями</span></a></li>
+      <li><a href="#group-4"><span class="en">4. Edge Cases</span><span class="ru">4. Граничные случаи</span></a></li>
+      <li><a href="#group-5"><span class="en">5. Balance Conservation</span><span class="ru">5. Сохранение баланса</span></a></li>
+      <li><a href="#group-6"><span class="en">6. RPC Query Consistency</span><span class="ru">6. Консистентность RPC-запросов</span></a></li>
+      <li><a href="#group-7"><span class="en">7. Tron Protobuf Transfers</span><span class="ru">7. Переводы через Tron protobuf</span></a></li>
+      <li><a href="#group-8"><span class="en">8. HTLC Atomic Swaps</span><span class="ru">8. Атомарные свопы HTLC</span></a></li>
+      <li><a href="#group-9"><span class="en">9. BlockFeed Integration</span><span class="ru">9. Интеграция BlockFeed</span></a></li>
+      <li><a href="#group-10"><span class="en">10. Verifier Replay</span><span class="ru">10. Воспроизведение верификатором</span></a></li>
+      <li><a href="#group-11"><span class="en">11. Verifier Operations</span><span class="ru">11. Операции верификатора</span></a></li>
+      <li><a href="#group-12"><span class="en">12. Anti-spam Throttle</span><span class="ru">12. Антиспам-throttle</span></a></li>
+      <li><a href="#group-13"><span class="en">13. Security Audit</span><span class="ru">13. Аудит безопасности</span></a></li>
+    </ul>
+  </nav>
+</aside>
+
 <div class="container">
 
   <!-- Accounts -->
@@ -126,28 +164,28 @@
     <div class="account minter">
       <div class="name">Minter (HH #0)</div>
       <div class="addr">0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266</div>
-      <div class="balance"><span class="en">Genesis: 1B USDC</span><span class="ru">Генезис: 1B USDC</span></div>
+      <div class="balance"><span class="en">Genesis: 1B USD-stable</span><span class="ru">Генезис: 1B USD-stable</span></div>
     </div>
     <div class="account alice">
       <div class="name">Alice (HH #1)</div>
       <div class="addr">0x70997970C51812dc3A010C7d01b50e0d17dc79C8</div>
-      <div class="balance"><span class="en">Funded: 10,000 USDC</span><span class="ru">Баланс: 10 000 USDC</span></div>
+      <div class="balance"><span class="en">Funded: 10,000 USD-stable</span><span class="ru">Баланс: 10 000 USD-stable</span></div>
     </div>
     <div class="account bob">
       <div class="name">Bob (HH #2)</div>
       <div class="addr">0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC</div>
-      <div class="balance"><span class="en">Funded: 10,000 USDC</span><span class="ru">Баланс: 10 000 USDC</span></div>
+      <div class="balance"><span class="en">Funded: 10,000 USD-stable</span><span class="ru">Баланс: 10 000 USD-stable</span></div>
     </div>
     <div class="account charlie">
       <div class="name">Charlie (HH #3)</div>
       <div class="addr">0x90F79bf6EB2c4f870365E785982E1f101E93b906</div>
-      <div class="balance"><span class="en">Funded: 10,000 USDC</span><span class="ru">Баланс: 10 000 USDC</span></div>
+      <div class="balance"><span class="en">Funded: 10,000 USD-stable</span><span class="ru">Баланс: 10 000 USD-stable</span></div>
     </div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 1: Funding -->
-  <div class="group">
+  <div class="group" id="group-1">
     <div class="group-title">
       <span class="en">1. Funding Accounts</span>
       <span class="ru">1. Начальное финансирование</span>
@@ -164,38 +202,38 @@
       </div>
       <div class="explanation">
         <span class="en">
-          The genesis minter account holds all initial USDC supply. This test verifies that the minter
+          The genesis minter account holds all initial USD-stable supply. This test verifies that the minter
           can distribute funds to three independent accounts in a single block. It exercises the full
           RPC round-trip: <code>eth_sendRawTransaction</code> for each transfer, one
           <code>produce_block</code> call to batch all three into block #1, then receipt and balance
-          checks to confirm each account received exactly 10,000 USDC.
+          checks to confirm each account received exactly 10,000 USD-stable.
         </span>
         <span class="ru">
-          Генезисный аккаунт minter держит весь начальный запас USDC. Тест проверяет, что minter
+          Генезисный аккаунт minter держит весь начальный запас USD-stable. Тест проверяет, что minter
           может раздать средства трём независимым аккаунтам в рамках одного блока. Проходит полный
           цикл RPC: <code>eth_sendRawTransaction</code> для каждого перевода, один вызов
           <code>produce_block</code> для упаковки всех трёх в блок #1, затем проверка receipt
-          и балансов &mdash; каждый аккаунт должен получить ровно 10 000 USDC.
+          и балансов &mdash; каждый аккаунт должен получить ровно 10 000 USD-stable.
         </span>
       </div>
       <div class="flow">
         <span class="actor minter">Minter</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">10,000 USDC</span>
+        <span class="amount">10,000 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor alice">Alice</span>
       </div>
       <div class="flow">
         <span class="actor minter">Minter</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">10,000 USDC</span>
+        <span class="amount">10,000 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
       </div>
       <div class="flow">
         <span class="actor minter">Minter</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">10,000 USDC</span>
+        <span class="amount">10,000 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor charlie">Charlie</span>
       </div>
@@ -221,7 +259,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 2: Basic Transfers -->
-  <div class="group">
+  <div class="group" id="group-2">
     <div class="group-title">
       <span class="en">2. Basic Transfers</span>
       <span class="ru">2. Базовые переводы</span>
@@ -233,20 +271,20 @@
 
     <div class="test-card">
       <div class="test-name"><span class="pass">PASS</span>
-        <span class="en">Alice sends 500 USDC to Bob</span>
-        <span class="ru">Alice отправляет 500 USDC Бобу</span>
+        <span class="en">Alice sends 500 USD-stable to Bob</span>
+        <span class="ru">Alice отправляет 500 USD-stable Бобу</span>
       </div>
       <div class="explanation">
         <span class="en">
           The simplest possible transfer between two funded accounts. Alice signs an EIP-155 legacy
-          transaction with 500 USDC (encoded as 500 &times; 10<sup>18</sup> on the wire, scaled down to
+          transaction with 500 USD-stable (encoded as 500 &times; 10<sup>18</sup> on the wire, scaled down to
           6 decimals by the executor). After block production, the test verifies the receipt landed in
           block #2 with status success, and that Alice's balance decreased while Bob's increased by
           exactly the transfer amount.
         </span>
         <span class="ru">
           Простейший перевод между двумя аккаунтами с балансом. Alice подписывает legacy-транзакцию
-          EIP-155 на 500 USDC (on-wire значение 500 &times; 10<sup>18</sup>, executor приводит к
+          EIP-155 на 500 USD-stable (on-wire значение 500 &times; 10<sup>18</sup>, executor приводит к
           6 десятичным). После формирования блока тест проверяет, что receipt попал в блок #2 со
           статусом success, баланс Alice уменьшился, а баланс Bob вырос ровно на сумму перевода.
         </span>
@@ -254,7 +292,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">500 USDC</span>
+        <span class="amount">500 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
       </div>
@@ -268,19 +306,19 @@
 
     <div class="test-card">
       <div class="test-name"><span class="pass">PASS</span>
-        <span class="en">Bob forwards 200 USDC to Charlie</span>
-        <span class="ru">Bob пересылает 200 USDC Чарли</span>
+        <span class="en">Bob forwards 200 USD-stable to Charlie</span>
+        <span class="ru">Bob пересылает 200 USD-stable Чарли</span>
       </div>
       <div class="explanation">
         <span class="en">
-          Tests a two-hop chain of custody: Alice first sends 500 USDC to Bob, then in a subsequent
-          block Bob forwards 200 USDC of his new balance to Charlie. This verifies that funds received
+          Tests a two-hop chain of custody: Alice first sends 500 USD-stable to Bob, then in a subsequent
+          block Bob forwards 200 USD-stable of his new balance to Charlie. This verifies that funds received
           in one block are immediately spendable in the next, and that nonce tracking works correctly
           when a previously-inactive account (Bob, nonce 0) makes its first outbound transaction.
         </span>
         <span class="ru">
-          Проверка двухшагового маршрута: Alice сначала отправляет 500 USDC Бобу, затем в следующем
-          блоке Bob пересылает 200 USDC из полученных средств Чарли. Тест подтверждает, что средства,
+          Проверка двухшагового маршрута: Alice сначала отправляет 500 USD-stable Бобу, затем в следующем
+          блоке Bob пересылает 200 USD-stable из полученных средств Чарли. Тест подтверждает, что средства,
           полученные в одном блоке, сразу доступны для трат в следующем, а nonce корректно
           отслеживается при первой исходящей транзакции с ранее неактивного аккаунта (Bob, nonce 0).
         </span>
@@ -288,13 +326,13 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">500 USDC</span>
+        <span class="amount">500 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
         <span style="color:#484f58; margin: 0 0.3rem;">//</span>
         <span class="actor bob">Bob</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">200 USDC</span>
+        <span class="amount">200 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor charlie">Charlie</span>
       </div>
@@ -336,7 +374,7 @@
         <span style="color:#484f58; margin: 0 0.3rem;">//</span>
         <span class="actor charlie">Charlie</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">100 USDC</span>
+        <span class="amount">100 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor alice">Alice</span>
       </div>
@@ -350,7 +388,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 3: Multi-tx blocks -->
-  <div class="group">
+  <div class="group" id="group-3">
     <div class="group-title">
       <span class="en">3. Multi-Transaction Blocks</span>
       <span class="ru">3. Блоки с несколькими транзакциями</span>
@@ -476,7 +514,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 4: Edge Cases -->
-  <div class="group">
+  <div class="group" id="group-4">
     <div class="group-title">
       <span class="en">4. Edge Cases</span>
       <span class="ru">4. Граничные случаи</span>
@@ -493,13 +531,13 @@
       </div>
       <div class="explanation">
         <span class="en">
-          Alice attempts to transfer 999,999 USDC while only holding 10,000. The executor detects the
+          Alice attempts to transfer 999,999 USD-stable while only holding 10,000. The executor detects the
           insufficient balance during <code>charge_and_execute</code> and records the transaction as
           failed (status 0) without modifying any account balances. This is critical for preventing
           overdrafts: the chain must never create money by allowing a spend beyond the sender's balance.
         </span>
         <span class="ru">
-          Alice пытается перевести 999 999 USDC при балансе 10 000. Executor обнаруживает нехватку
+          Alice пытается перевести 999 999 USD-stable при балансе 10 000. Executor обнаруживает нехватку
           средств на этапе <code>charge_and_execute</code> и фиксирует транзакцию как неуспешную
           (status 0), не изменяя балансы. Это критично для защиты от овердрафта: чейн не должен
           создавать деньги, разрешая трату сверх баланса отправителя.
@@ -508,7 +546,7 @@
       <div class="flow">
         <span class="actor alice">Alice (10k)</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount fail-amount">999,999 USDC</span>
+        <span class="amount fail-amount">999,999 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
       </div>
@@ -558,13 +596,13 @@
       </div>
       <div class="explanation">
         <span class="en">
-          A transfer of 0 USDC is technically valid and should succeed. This is important because
+          A transfer of 0 USD-stable is technically valid and should succeed. This is important because
           zero-value transactions are sometimes used to trigger nonce increments, interact with
           precompiles via calldata, or simply as a "ping" to confirm an address is active. The test
           verifies balances stay unchanged but the sender's nonce still increments.
         </span>
         <span class="ru">
-          Перевод 0 USDC формально валиден и должен завершиться успешно. Это важно, потому что
+          Перевод 0 USD-stable формально валиден и должен завершиться успешно. Это важно, потому что
           транзакции с нулевой суммой используют для инкремента nonce, взаимодействия с precompile
           через calldata или как пинг для подтверждения активности адреса. Тест проверяет, что балансы
           не изменились, но nonce отправителя увеличился.
@@ -573,7 +611,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">0 USDC</span>
+        <span class="amount">0 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
       </div>
@@ -593,13 +631,13 @@
       <div class="explanation">
         <span class="en">
           When funds are sent to an address that has never transacted on-chain, the executor must
-          auto-create the account record before crediting it. This test sends 50 USDC to a fresh
+          auto-create the account record before crediting it. This test sends 50 USD-stable to a fresh
           address (<code>0x0000...DEAD</code>) and confirms the account is created with the correct
           balance. Without this implicit creation, transfers to new addresses would fail.
         </span>
         <span class="ru">
           Когда средства отправляются на адрес, который ещё не участвовал в транзакциях, executor
-          должен автоматически создать запись аккаунта перед зачислением. Тест отправляет 50 USDC
+          должен автоматически создать запись аккаунта перед зачислением. Тест отправляет 50 USD-stable
           на новый адрес (<code>0x0000...DEAD</code>) и убеждается, что аккаунт создан с правильным
           балансом. Без неявного создания переводы на новые адреса завершались бы ошибкой.
         </span>
@@ -607,7 +645,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">50 USDC</span>
+        <span class="amount">50 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor new-addr">0x0000...DEAD</span>
       </div>
@@ -645,7 +683,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">100 USDC</span>
+        <span class="amount">100 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
         <span style="color:#484f58; font-size:0.75rem; margin-left:0.3rem;">&times;2</span>
@@ -699,7 +737,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 5: Balance Conservation -->
-  <div class="group">
+  <div class="group" id="group-5">
     <div class="group-title">
       <span class="en">5. Balance Conservation</span>
       <span class="ru">5. Сохранение баланса</span>
@@ -759,7 +797,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 6: RPC Consistency -->
-  <div class="group">
+  <div class="group" id="group-6">
     <div class="group-title">
       <span class="en">6. RPC Query Consistency</span>
       <span class="ru">6. Консистентность RPC-запросов</span>
@@ -776,14 +814,14 @@
       </div>
       <div class="explanation">
         <span class="en">
-          The chain stores balances in 6-decimal USDC internally, but the Ethereum RPC spec expects
+          The chain stores balances in 6-decimal USD-stable internally, but the Ethereum RPC spec expects
           18-decimal values (like wei). This test performs a transfer, then queries the balance via both
           the direct DB path and the <code>eth_getBalance</code> RPC, and verifies the RPC result equals
           the DB value multiplied by 10<sup>12</sup>. A mismatch here would mean wallets display wrong
           balances.
         </span>
         <span class="ru">
-          Чейн хранит балансы в 6-десятичном формате USDC, но спецификация Ethereum RPC ожидает
+          Чейн хранит балансы в 6-десятичном формате USD-stable, но спецификация Ethereum RPC ожидает
           18-десятичные значения (как wei). Тест выполняет перевод, затем запрашивает баланс напрямую
           из базы и через <code>eth_getBalance</code> RPC и проверяет, что результат RPC равен значению
           из БД, умноженному на 10<sup>12</sup>. Расхождение означало бы, что кошельки показывают
@@ -793,7 +831,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">777 USDC</span>
+        <span class="amount">777 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
       </div>
@@ -896,7 +934,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 7: Tron Protobuf -->
-  <div class="group">
+  <div class="group" id="group-7">
     <div class="group-title">
       <span class="en">7. Tron Protobuf Transfers</span>
       <span class="ru">7. Переводы через Tron protobuf</span>
@@ -908,8 +946,8 @@
 
     <div class="test-card">
       <div class="test-name"><span class="pass">PASS</span>
-        <span class="en">Alice sends 500 USDC to Bob via Tron wallet API</span>
-        <span class="ru">Alice отправляет 500 USDC Бобу через Tron wallet API</span>
+        <span class="en">Alice sends 500 USD-stable to Bob via Tron wallet API</span>
+        <span class="ru">Alice отправляет 500 USD-stable Бобу через Tron wallet API</span>
       </div>
       <div class="explanation">
         <span class="en">
@@ -932,7 +970,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">500 USDC</span>
+        <span class="amount">500 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
         <span style="color:#7c3aed; font-size:0.75rem; margin-left:0.3rem;">(tron_pb)</span>
@@ -990,7 +1028,7 @@
       </div>
       <div class="explanation">
         <span class="en">
-          Alice sends 300 USDC to Bob via ETH RLP, and Charlie sends 200 USDC to the same Bob via
+          Alice sends 300 USD-stable to Bob via ETH RLP, and Charlie sends 200 USD-stable to the same Bob via
           Tron protobuf — all in a single block. The executor processes both transaction kinds
           sequentially, and both credit the same account. This test catches bugs where one codepath
           might overwrite the other's balance update instead of accumulating, or where the account
@@ -998,7 +1036,7 @@
           transaction.
         </span>
         <span class="ru">
-          Alice отправляет 300 USDC Бобу через ETH RLP, а Charlie — 200 USDC тому же Бобу через
+          Alice отправляет 300 USD-stable Бобу через ETH RLP, а Charlie — 200 USD-stable тому же Бобу через
           Tron protobuf, и всё в одном блоке. Executor обрабатывает оба формата последовательно,
           оба зачисляют на один аккаунт. Тест ловит баги, при которых один codepath может перезаписать
           обновление баланса от другого вместо накопления, или когда запись аккаунта, созданная первым
@@ -1008,7 +1046,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">300 USDC</span>
+        <span class="amount">300 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
         <span style="color:#484f58; font-size:0.75rem; margin-left:0.3rem;">(eth_rlp)</span>
@@ -1016,7 +1054,7 @@
       <div class="flow">
         <span class="actor charlie">Charlie</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">200 USDC</span>
+        <span class="amount">200 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
         <span style="color:#7c3aed; font-size:0.75rem; margin-left:0.3rem;">(tron_pb)</span>
@@ -1035,15 +1073,15 @@
       </div>
       <div class="explanation">
         <span class="en">
-          Alice sends 9,999 USDC to Bob via ETH (leaving just 1 USDC), and simultaneously submits a
-          500 USDC Tron transfer to Charlie. Since the ETH transaction executes first and drains
+          Alice sends 9,999 USD-stable to Bob via ETH (leaving just 1 USD-stable), and simultaneously submits a
+          500 USD-stable Tron transfer to Charlie. Since the ETH transaction executes first and drains
           nearly all of Alice's balance, the Tron transfer hits insufficient funds and fails with
           status 0. This tests cross-format balance contention: the executor must not process the two
           transactions in isolation — the second must see the state left by the first.
         </span>
         <span class="ru">
-          Alice отправляет 9 999 USDC Бобу через ETH (остаётся 1 USDC) и одновременно подаёт Tron-перевод
-          на 500 USDC Чарли. ETH-транзакция исполняется первой и почти полностью опустошает баланс,
+          Alice отправляет 9 999 USD-stable Бобу через ETH (остаётся 1 USD-stable) и одновременно подаёт Tron-перевод
+          на 500 USD-stable Чарли. ETH-транзакция исполняется первой и почти полностью опустошает баланс,
           поэтому Tron-перевод получает insufficient balance и падает со status 0. Тест проверяет
           конкуренцию за баланс между форматами: executor не должен обрабатывать транзакции изолированно —
           вторая обязана видеть состояние, оставленное первой.
@@ -1052,7 +1090,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">9,999 USDC</span>
+        <span class="amount">9,999 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
         <span style="color:#484f58; font-size:0.75rem; margin-left:0.3rem;">(eth_rlp)</span>
@@ -1060,7 +1098,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount fail-amount">500 USDC (insufficient)</span>
+        <span class="amount fail-amount">500 USD-stable (insufficient)</span>
         <span class="arrow">&rarr;</span>
         <span class="actor charlie">Charlie</span>
         <span style="color:#7c3aed; font-size:0.75rem; margin-left:0.3rem;">(tron_pb)</span>
@@ -1143,7 +1181,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 8: HTLC Atomic Swaps -->
-  <div class="group">
+  <div class="group" id="group-8">
     <div class="group-title">
       <span class="en">8. HTLC Atomic Swaps</span>
       <span class="ru">8. Атомарные свопы HTLC</span>
@@ -1160,7 +1198,7 @@
       </div>
       <div class="explanation">
         <span class="en">
-          The happy path of a hash time-locked contract: Alice locks 500 USDC into the HTLC precompile
+          The happy path of a hash time-locked contract: Alice locks 500 USD-stable into the HTLC precompile
           by calling <code>lock(hash, receiver, amount, deadline)</code>, where <code>hash =
           SHA-256(preimage)</code>. The funds leave Alice's account and are held by the contract. Bob
           then calls <code>claim(hash, preimage)</code> with the correct secret, proving knowledge of
@@ -1169,7 +1207,7 @@
           cross-chain atomic swaps.
         </span>
         <span class="ru">
-          Основной сценарий hash time-locked contract: Alice блокирует 500 USDC в HTLC precompile
+          Основной сценарий hash time-locked contract: Alice блокирует 500 USD-stable в HTLC precompile
           вызовом <code>lock(hash, receiver, amount, deadline)</code>, где <code>hash =
           SHA-256(preimage)</code>. Средства уходят с аккаунта Alice и удерживаются контрактом. Затем
           Bob вызывает <code>claim(hash, preimage)</code> с правильным секретом, доказывая знание
@@ -1181,7 +1219,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="htlc-op">LOCK 500 USDC</span>
+        <span class="htlc-op">LOCK 500 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor htlc">HTLC</span>
       </div>
@@ -1192,7 +1230,7 @@
         <span class="arrow">&rarr;</span>
         <span class="actor htlc">HTLC</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">500 USDC</span>
+        <span class="amount">500 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
       </div>
@@ -1228,7 +1266,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="htlc-op">LOCK 300 USDC (1s deadline)</span>
+        <span class="htlc-op">LOCK 300 USD-stable (1s deadline)</span>
         <span class="arrow">&rarr;</span>
         <span class="actor htlc">HTLC</span>
       </div>
@@ -1255,7 +1293,7 @@
         <span class="arrow">&rarr;</span>
         <span class="actor htlc">HTLC</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">300 USDC</span>
+        <span class="amount">300 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor alice">Alice</span>
       </div>
@@ -1274,14 +1312,14 @@
       <div class="explanation">
         <span class="en">
           The security guarantee of HTLC: only the holder of the correct preimage can claim the funds.
-          This test locks 100 USDC with <code>hash = SHA-256(preimage)</code>, then Bob tries to claim
+          This test locks 100 USD-stable with <code>hash = SHA-256(preimage)</code>, then Bob tries to claim
           with a randomly generated wrong preimage. The contract computes SHA-256(wrong_preimage),
           finds it doesn't match the stored hash, and reverts. The swap stays locked and Bob's balance
           is unchanged. This prevents brute-force theft of locked funds.
         </span>
         <span class="ru">
           Гарантия безопасности HTLC: только обладатель правильного preimage может забрать средства.
-          Тест блокирует 100 USDC с <code>hash = SHA-256(preimage)</code>, затем Bob пытается забрать
+          Тест блокирует 100 USD-stable с <code>hash = SHA-256(preimage)</code>, затем Bob пытается забрать
           средства со случайным неверным preimage. Контракт вычисляет SHA-256(wrong_preimage),
           обнаруживает несовпадение с хешем и откатывает операцию. Своп остаётся заблокированным,
           баланс Bob не изменяется. Это защищает от перебора при попытке украсть заблокированные
@@ -1291,7 +1329,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="htlc-op">LOCK 100 USDC</span>
+        <span class="htlc-op">LOCK 100 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor htlc">HTLC</span>
       </div>
@@ -1332,7 +1370,7 @@
       <div class="flow">
         <span class="actor alice">Alice</span>
         <span class="arrow">&rarr;</span>
-        <span class="htlc-op">LOCK 100 USDC (1s deadline)</span>
+        <span class="htlc-op">LOCK 100 USD-stable (1s deadline)</span>
         <span class="arrow">&rarr;</span>
         <span class="actor htlc">HTLC</span>
       </div>
@@ -1366,7 +1404,7 @@
       <div class="explanation">
         <span class="en">
           HTLC operations move funds between accounts and the contract's escrow. This test verifies that
-          the total monetary supply is conserved throughout the entire lifecycle: after locking 1,000 USDC,
+          the total monetary supply is conserved throughout the entire lifecycle: after locking 1,000 USD-stable,
           the sum of all account balances plus locked HTLC amounts must equal the initial total supply.
           After Bob claims, the funds return to the account system and the simple account-only sum must
           match again. Any leakage in the lock/claim path would be caught here.
@@ -1374,7 +1412,7 @@
         <span class="ru">
           Операции HTLC перемещают средства между аккаунтами и эскроу контракта. Тест проверяет, что
           суммарная денежная масса сохраняется на протяжении всего жизненного цикла: после блокировки
-          1 000 USDC сумма балансов всех аккаунтов плюс заблокированные суммы HTLC должна равняться
+          1 000 USD-stable сумма балансов всех аккаунтов плюс заблокированные суммы HTLC должна равняться
           начальному объёму эмиссии. После claim Боба средства возвращаются в систему аккаунтов, и
           простая сумма балансов снова должна сойтись. Любая утечка на пути lock/claim будет поймана
           этим тестом.
@@ -1400,7 +1438,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 9: BlockFeed Integration -->
-  <div class="group">
+  <div class="group" id="group-9">
     <div class="group-title">
       <span class="en">9. BlockFeed Integration</span>
       <span class="ru">9. Интеграция BlockFeed</span>
@@ -1466,7 +1504,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 10: Verifier Replay -->
-  <div class="group">
+  <div class="group" id="group-10">
     <div class="group-title">
       <span class="en">10. Verifier Replay</span>
       <span class="ru">10. Воспроизведение верификатором</span>
@@ -1524,14 +1562,14 @@
       </div>
       <div class="explanation">
         <span class="en">
-          Three blocks are verified in sequence, each transferring 100 USDC from the minter to a different
+          Three blocks are verified in sequence, each transferring 100 USD-stable from the minter to a different
           recipient (Alice, Bob, Charlie). After each <code>verify_and_commit</code>, the verifier's tip
           advances and the account state updates. This tests that the verifier correctly maintains state
           across multiple blocks &mdash; nonces increment, balances accumulate, and the parent_hash chain
           stays intact through the entire sequence.
         </span>
         <span class="ru">
-          Три блока верифицируются последовательно, каждый переводит 100 USDC от minter разным получателям
+          Три блока верифицируются последовательно, каждый переводит 100 USD-stable от minter разным получателям
           (Alice, Bob, Charlie). После каждого <code>verify_and_commit</code> tip верификатора
           продвигается, состояние аккаунтов обновляется. Тест проверяет, что верификатор корректно
           поддерживает состояние через несколько блоков &mdash; nonce-ы растут, балансы накапливаются,
@@ -1541,7 +1579,7 @@
       <div class="flow">
         <span class="actor minter">Minter</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">100 USDC</span>
+        <span class="amount">100 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor alice">Alice</span>
         <span style="color:#484f58; margin: 0 0.3rem;">(block 1)</span>
@@ -1549,7 +1587,7 @@
       <div class="flow">
         <span class="actor minter">Minter</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">100 USDC</span>
+        <span class="amount">100 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor bob">Bob</span>
         <span style="color:#484f58; margin: 0 0.3rem;">(block 2)</span>
@@ -1557,7 +1595,7 @@
       <div class="flow">
         <span class="actor minter">Minter</span>
         <span class="arrow">&rarr;</span>
-        <span class="amount">100 USDC</span>
+        <span class="amount">100 USD-stable</span>
         <span class="arrow">&rarr;</span>
         <span class="actor charlie">Charlie</span>
         <span style="color:#484f58; margin: 0 0.3rem;">(block 3)</span>
@@ -1658,7 +1696,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 11: Verifier Operations (TASK-30) -->
-  <div class="group">
+  <div class="group" id="group-11">
     <div class="group-title">
       <span class="en">11. Verifier Operations</span>
       <span class="ru">11. Операционная устойчивость верификатора</span>
@@ -1857,7 +1895,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 12: Anti-spam Throttle (TASK-16) -->
-  <div class="group">
+  <div class="group" id="group-12">
     <div class="group-title">
       <span class="en">12. Anti-spam Throttle</span>
       <span class="ru">12. Антиспам-throttle</span>
@@ -1924,7 +1962,7 @@
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- Group 13: Security Audit (TASK-28) -->
-  <div class="group">
+  <div class="group" id="group-13">
     <div class="group-title">
       <span class="en">13. Security Audit</span>
       <span class="ru">13. Аудит безопасности</span>
@@ -2070,6 +2108,8 @@
 
 </div>
 
+</div>
+
 <script>
 function setLang(lang) {
   document.body.className = 'lang-' + lang;
@@ -2077,6 +2117,26 @@ function setLang(lang) {
   document.getElementById('btn-en').className = 'lang-btn' + (lang === 'en' ? ' active' : '');
   document.getElementById('btn-ru').className = 'lang-btn' + (lang === 'ru' ? ' active' : '');
 }
+
+// Highlight the TOC link of the group currently in view.
+(function () {
+  const groups = document.querySelectorAll('.group[id]');
+  const links = document.querySelectorAll('.toc nav a');
+  const linkById = {};
+  links.forEach(a => { linkById[a.getAttribute('href').slice(1)] = a; });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const a = linkById[entry.target.id];
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  groups.forEach(g => observer.observe(g));
+})();
 </script>
 </body>
 </html>
