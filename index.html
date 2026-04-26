@@ -113,14 +113,14 @@
     <span class="ru">2D Chain &mdash; Отчёт по интеграционным тестам</span>
   </h1>
   <div class="subtitle">
-    <span class="en">End-to-end tests: ETH transfers, Tron protobuf, HTLC atomic swaps, verifier operations, anti-spam throttle, and security audit</span>
-    <span class="ru">Сквозные тесты: ETH-переводы, Tron protobuf, атомарные свопы HTLC, операции верификатора, антиспам-throttle и аудит безопасности</span>
+    <span class="en">End-to-end tests across the full chain stack: transfers, atomic swaps, Tron protobuf dispatch, verifier replay and operations, anti-spam, and security audit</span>
+    <span class="ru">Сквозные тесты по всему стеку чейна: переводы, атомарные свопы, диспетчеризация через Tron protobuf, верификатор, антиспам и аудит безопасности</span>
   </div>
   <div class="header-row">
     <div class="stats">
-      <div class="stat"><div class="num">49</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
-      <div class="stat"><div class="num">13</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
-      <div class="stat"><div class="num">49</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
+      <div class="stat"><div class="num">51</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
+      <div class="stat"><div class="num">14</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
+      <div class="stat"><div class="num">51</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
       <div class="stat"><div class="num">0</div><div class="label" style="color:#f85149"><span class="en">Failing</span><span class="ru">Ошибки</span></div></div>
       <div class="stat"><div class="num">~2.7s</div><div class="label"><span class="en">Runtime</span><span class="ru">Время</span></div></div>
     </div>
@@ -153,6 +153,7 @@
       <li><a href="#group-11"><span class="en">11. Verifier Operations</span><span class="ru">11. Операции верификатора</span></a></li>
       <li><a href="#group-12"><span class="en">12. Anti-spam Throttle</span><span class="ru">12. Антиспам-throttle</span></a></li>
       <li><a href="#group-13"><span class="en">13. Security Audit</span><span class="ru">13. Аудит безопасности</span></a></li>
+      <li><a href="#group-14"><span class="en">14. Tron protobuf precompile dispatch</span><span class="ru">14. Tron protobuf → precompile</span></a></li>
     </ul>
   </nav>
 </aside>
@@ -2102,6 +2103,83 @@
       </div>
       <div class="assertions">
         <span class="assert-pill fail">message =~ "too large"</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 14: Tron protobuf precompile dispatch (TASK-32) -->
+  <div class="group" id="group-14">
+    <div class="group-title">
+      <span class="en">14. Tron protobuf precompile dispatch</span>
+      <span class="ru">14. Tron protobuf → precompile</span>
+      <span class="badge proto-badge">
+        <span class="en">2 tests</span>
+        <span class="ru">2 теста</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Alice locks via Tron TriggerSmartContract; HTLC state mutates and log is emitted</span>
+        <span class="ru">Alice блокирует через Tron TriggerSmartContract; HTLC-state мутирует и эмитится лог</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Alice signs an HTLC `lock(...)` selector + args wrapped in a Tron `TriggerSmartContract`
+          envelope (with `contract` = `0x41` + HTLC address) and broadcasts via
+          `/wallet/broadcasttransaction`. After produce_block, the htlc_swaps row materialises with
+          the right sender / receiver / amount / deadline; the transactions row is `kind="tron_pb"`
+          with `hash = sha256(raw_data)` matching the broadcast `txid`; and the HTLC_Locked log
+          carries the right address, all four topic slots, and `data == &lt;&lt;amount::256, deadline_ms::256&gt;&gt;`.
+          Confirms the Tron-format path resolves the sender to the same 20-byte account as the
+          equivalent ETH RLP path.
+        </span>
+        <span class="ru">
+          Alice подписывает селектор HTLC `lock(...)` с аргументами, упакованный в Tron-envelope
+          `TriggerSmartContract` (`contract` = `0x41` + адрес HTLC), и отправляет через
+          `/wallet/broadcasttransaction`. После produce_block появляется строка в htlc_swaps с
+          правильными sender / receiver / amount / deadline; в transactions — запись
+          `kind="tron_pb"` с `hash = sha256(raw_data)`, совпадающим с `txid` ответа broadcast-а;
+          лог HTLC_Locked несёт нужный адрес, все четыре топика и `data == &lt;&lt;amount::256, deadline_ms::256&gt;&gt;`.
+          Подтверждает, что Tron-путь резолвит отправителя в тот же 20-байтовый аккаунт, что и
+          эквивалентный путь через ETH RLP.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">tx.kind == "tron_pb"</span>
+        <span class="assert-pill">tx.hash == sha256(raw_data)</span>
+        <span class="assert-pill">htlc_swaps.sender == Alice</span>
+        <span class="assert-pill">log.topic0 == HTLC_Locked</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">unknown selector via Tron lands in block with status=0; pending cleared, no swap row</span>
+        <span class="ru">неизвестный селектор через Tron попадает в блок со status=0; pending очищен, swap не создан</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Same envelope as the happy path but with selector `&lt;&lt;0xDE, 0xAD, 0xBE, 0xEF&gt;&gt;` and 96
+          zero-byte args. After produce_block, the transactions row lands with `kind="tron_pb"`
+          and `status=0` (HTLC.execute reverts on the unknown selector), no htlc_swaps row
+          appears, the pending pool is cleared (no retry loop), and Alice's balance is unchanged —
+          the revert path doesn't debit.
+        </span>
+        <span class="ru">
+          Тот же envelope, что в happy path, но селектор `&lt;&lt;0xDE, 0xAD, 0xBE, 0xEF&gt;&gt;` и 96
+          нулевых байт аргументов. После produce_block строка в transactions появляется с
+          `kind="tron_pb"` и `status=0` (HTLC.execute ревертит на неизвестном селекторе),
+          строки в htlc_swaps не появляется, pending pool очищается (без retry-loop), баланс
+          Alice не меняется — revert не списывает.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">tx.status == 0</span>
+        <span class="assert-pill">pending count == 0</span>
+        <span class="assert-pill">htlc_swaps count == 0</span>
+        <span class="assert-pill">Alice balance unchanged</span>
       </div>
     </div>
   </div>
