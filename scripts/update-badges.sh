@@ -52,7 +52,7 @@ MIX_OUT="$(cd "$CHAIN_REPO" && mix test test/chain/integration_test.exs 2>&1)" |
 # Use `tests?` / `failures?` so the singular forms ("1 test", "1 failure") also match.
 # `|| true` keeps the assignment alive under `set -euo pipefail` when grep returns
 # 1 on no-match, so the empty-checks below are actually reachable.
-SUMMARY="$(echo "$MIX_OUT" | grep -E '[0-9]+ tests?,' | tail -1 || true)"
+SUMMARY="$(echo "$MIX_OUT" | grep -E '[0-9]+ tests?, [0-9]+ failures?' | tail -1 || true)"
 TESTS="$(echo "$SUMMARY" | grep -oE '[0-9]+ tests?' | head -1 | grep -oE '[0-9]+' || true)"
 FAILURES="$(echo "$SUMMARY" | grep -oE '[0-9]+ failures?' | head -1 | grep -oE '[0-9]+' || true)"
 
@@ -118,6 +118,19 @@ fi
 # Rendered shape (one per line):
 #   <div class="stat"><div class="num">51</div><div class="label"><span class="en">Tests</span>...
 #   <div class="stat"><div class="num">51</div><div class="label" style="color:#3fb950"><span class="en">Passing</span>...
+# Hard-fail if either expected pattern is missing, so a future markup change
+# can't make `sed` silently no-op and let badge/page counters diverge.
+TESTS_PATTERN='<div class="stat"><div class="num">[0-9]+</div><div class="label"><span class="en">Tests</span>'
+PASSING_PATTERN='<div class="stat"><div class="num">[0-9]+</div><div class="label" style="color:#3fb950"><span class="en">Passing</span>'
+grep -qE "$TESTS_PATTERN" "$INDEX_HTML" || {
+  echo "error: Tests counter pattern not found in $INDEX_HTML" >&2
+  exit 1
+}
+grep -qE "$PASSING_PATTERN" "$INDEX_HTML" || {
+  echo "error: Passing counter pattern not found in $INDEX_HTML" >&2
+  exit 1
+}
+
 INDEX_TMP="$(mktemp)"
 sed -E \
   -e "s|(<div class=\"stat\"><div class=\"num\">)[0-9]+(</div><div class=\"label\"><span class=\"en\">Tests</span>)|\1${TESTS}\2|g" \
