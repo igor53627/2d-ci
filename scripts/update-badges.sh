@@ -47,8 +47,9 @@ MIX_OUT="$(cd "$CHAIN_REPO" && mix test test/chain/integration_test.exs 2>&1)" |
   exit 1
 }
 
-# Last line shape: "56 tests, 0 failures" (optionally with "(N excluded)" or "N properties, ").
-SUMMARY="$(echo "$MIX_OUT" | tail -1)"
+# Summary line shape: "56 tests, 0 failures" (optionally with "(N excluded)" or "N properties, ").
+# Don't use `tail -1` — ExUnit may append "Randomized with seed ..." after the summary.
+SUMMARY="$(echo "$MIX_OUT" | grep -E '[0-9]+ tests,' | tail -1)"
 TESTS="$(echo "$SUMMARY" | grep -oE '[0-9]+ tests' | head -1 | grep -oE '[0-9]+')"
 FAILURES="$(echo "$SUMMARY" | grep -oE '[0-9]+ failures' | head -1 | grep -oE '[0-9]+')"
 
