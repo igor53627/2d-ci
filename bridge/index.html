@@ -1,0 +1,2898 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Chain — Bridge Subsystem Tests</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, system-ui, sans-serif; background: #0f1117; color: #e1e4e8; line-height: 1.6; }
+
+  /* Language switching */
+  body.lang-en .ru { display: none; }
+  body.lang-ru .en { display: none; }
+
+  .header { background: linear-gradient(135deg, #1a1e2e 0%, #0d1117 100%); border-bottom: 1px solid #30363d; padding: 2rem 3rem; }
+  .header h1 { font-size: 1.8rem; font-weight: 700; color: #f0f3f6; }
+  .header h1 .crumb { color: #8b949e; font-weight: 400; font-size: 1.2rem; }
+  .header h1 a { color: inherit; text-decoration: none; }
+  .header h1 a:hover { color: #58a6ff; }
+  .header .subtitle { color: #8b949e; margin-top: 0.3rem; font-size: 0.95rem; max-width: 900px; }
+  .header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1.2rem; }
+  .header .stats { display: flex; gap: 2rem; flex-wrap: wrap; }
+  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 0.7rem 1.2rem; }
+  .stat .num { font-size: 1.5rem; font-weight: 700; color: #58a6ff; }
+  .stat .label { font-size: 0.75rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .lang-toggle { display: flex; background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+  .lang-btn { background: transparent; border: none; color: #8b949e; font-size: 0.85rem; font-weight: 600; padding: 0.5rem 1rem; cursor: pointer; transition: background 0.2s, color 0.2s; letter-spacing: 0.03em; }
+  .lang-btn:hover { color: #e1e4e8; }
+  .lang-btn.active { background: #1f6feb; color: #fff; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+  /* Roles legend */
+  .roles { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .role { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 1rem 1.3rem; flex: 1; min-width: 200px; }
+  .role .name { font-weight: 700; font-size: 1.05rem; }
+  .role .where { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #8b949e; word-break: break-all; margin-top: 0.3rem; }
+  .role .note { color: #b1bac4; font-size: 0.82rem; margin-top: 0.45rem; }
+  .role.operator .name  { color: #f0883e; }
+  .role.bridge   .name  { color: #5eead4; }
+  .role.verifier .name  { color: #e5534b; }
+  .role.eth      .name  { color: #a4afff; }
+  .role.user     .name  { color: #bc8cff; }
+
+  /* Test groups */
+  .group { margin-bottom: 2.5rem; }
+  .group-title { font-size: 1.15rem; font-weight: 700; color: #f0f3f6; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 0.5rem; }
+  .group-title .badge { display: inline-block; font-size: 0.7rem; background: #1f6feb; color: #fff; padding: 0.15rem 0.5rem; border-radius: 10px; font-weight: 600; }
+  .group-title .htlc-badge { background: #0d9488; }
+  .group-title .verifier-badge { background: #e5534b; }
+  .group-title .eth-badge { background: #627eea; }
+  .group-title .prop-badge { background: #d97706; }
+  .group-title .anvil-badge { background: #6366f1; }
+
+  /* Test cards */
+  .test-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 1.3rem; margin-bottom: 0.8rem; transition: border-color 0.2s; }
+  .test-card:hover { border-color: #58a6ff; }
+  .test-name { font-weight: 600; font-size: 0.95rem; color: #f0f3f6; margin-bottom: 0.5rem; }
+  .test-name .pass { color: #3fb950; margin-right: 0.4rem; }
+
+  .explanation { font-size: 0.85rem; color: #b1bac4; margin-bottom: 0.7rem; line-height: 1.55; }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+  .flow .actor { display: inline-flex; align-items: center; gap: 0.3rem; background: #21262d; border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.8rem; font-weight: 600; }
+  .flow .arrow { color: #484f58; font-size: 1.1rem; }
+  .flow .amount { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 0.2rem 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #7ee787; }
+  .flow .fail-amount { background: #2d1117; border: 1px solid #5d2d2d; color: #f85149; }
+  .flow .htlc-op { background: #0d2d2d; border: 1px solid #0d9488; color: #5eead4; border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.78rem; font-weight: 600; }
+  .flow .eth-op  { background: #1a1f3a; border: 1px solid #627eea; color: #a4afff; border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.78rem; font-weight: 600; }
+
+  .actor.operator { border-left: 3px solid #f0883e; }
+  .actor.bridge   { border-left: 3px solid #0d9488; background: #0d2d2d; color: #5eead4; }
+  .actor.verifier { border-left: 3px solid #e5534b; }
+  .actor.eth      { border-left: 3px solid #627eea; background: #1a1f3a; color: #a4afff; }
+  .actor.user     { border-left: 3px solid #bc8cff; }
+  .actor.db       { border-left: 3px solid #768390; background: #1c2128; color: #adbac7; }
+
+  /* Assertions */
+  .assertions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .assert-pill { font-size: 0.72rem; background: #0d2818; border: 1px solid #1b4332; color: #7ee787; padding: 0.2rem 0.5rem; border-radius: 5px; font-family: 'JetBrains Mono', monospace; }
+  .assert-pill.fail { background: #2d1117; border-color: #5d2d2d; color: #f85149; }
+  .assert-pill.info { background: #0d1117; border-color: #30363d; color: #8b949e; }
+
+  .section-note { font-size: 0.82rem; color: #8b949e; margin: 1.2rem 0 0.5rem; font-style: italic; padding-left: 0.3rem; border-left: 2px solid #30363d; }
+  .section-note:first-of-type { margin-top: 0.4rem; }
+
+  .group-intro { background: #161b22; border: 1px solid #30363d; border-left: 3px solid #58a6ff; border-radius: 6px; padding: 0.9rem 1.1rem; margin-bottom: 1rem; font-size: 0.85rem; color: #b1bac4; line-height: 1.55; }
+
+  /* Subsystems strip on top — links back to the main report */
+  .breadcrumb { background: #0d1117; border-bottom: 1px solid #21262d; padding: 0.6rem 3rem; display: flex; gap: 0.6rem; align-items: center; font-size: 0.82rem; color: #8b949e; }
+  .breadcrumb a { color: #58a6ff; text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  .breadcrumb .sep { color: #484f58; }
+
+  /* Layout: sidebar + content */
+  .layout { display: flex; max-width: 1500px; margin: 0 auto; align-items: flex-start; }
+  .layout .container { max-width: none; flex: 1; min-width: 0; }
+  .toc { position: sticky; top: 1.5rem; align-self: flex-start; width: 240px; flex-shrink: 0; padding: 2rem 0 2rem 2rem; max-height: calc(100vh - 3rem); overflow-y: auto; }
+  .toc-title { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.7rem; padding-left: 0.6rem; }
+  .toc nav ul { list-style: none; padding: 0; margin: 0; }
+  .toc nav li { margin-bottom: 0.15rem; }
+  .toc nav a { display: block; color: #8b949e; text-decoration: none; font-size: 0.82rem; padding: 0.35rem 0.6rem; border-radius: 6px; border-left: 2px solid transparent; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+  .toc nav a:hover { color: #e1e4e8; background: #161b22; }
+  .toc nav a.active { color: #58a6ff; background: #161b22; border-left-color: #58a6ff; }
+  @media (max-width: 1000px) { .toc { display: none; } .layout .container { max-width: 1200px; padding: 2rem; margin: 0 auto; } }
+</style>
+</head>
+<body class="lang-ru">
+
+<div class="breadcrumb">
+  <a href="../">2D Chain CI</a>
+  <span class="sep">›</span>
+  <span class="en">Bridge subsystem</span>
+  <span class="ru">Подсистема моста</span>
+</div>
+
+<div class="header">
+  <h1>
+    <span class="en">2D Chain &mdash; Bridge Subsystem Tests</span>
+    <span class="ru">2D Chain &mdash; Тесты подсистемы моста</span>
+  </h1>
+  <div class="subtitle">
+    <span class="en">
+      Atomic <code>bridge_lock</code> precompile, cross-chain verifier checks against finalized Ethereum events,
+      <code>state_root</code> inclusion of <code>bridge_mints</code>, the <code>EthereumRpc</code> adapter
+      (dispatch + Stub + HTTP fail-closed config), the supply-conservation property, and the anvil end-to-end
+      path that exercises the whole stack against a real chain.
+    </span>
+    <span class="ru">
+      Атомарный precompile <code>bridge_lock</code>, кросс-чейн проверки верификатора против финализированных
+      событий Ethereum, включение <code>bridge_mints</code> в <code>state_root</code>, адаптер
+      <code>EthereumRpc</code> (dispatch + Stub + HTTP fail-closed config), property сохранения supply
+      и сквозной anvil-сценарий, который прогоняет весь стек против настоящей цепи.
+    </span>
+  </div>
+  <div class="header-row">
+    <div class="stats">
+      <div class="stat"><div class="num">84</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
+      <div class="stat"><div class="num">7</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
+      <div class="stat"><div class="num">84</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
+      <div class="stat"><div class="num">0</div><div class="label" style="color:#f85149"><span class="en">Failing</span><span class="ru">Ошибки</span></div></div>
+      <div class="stat"><div class="num">~0.3s</div><div class="label"><span class="en">Sandbox runtime</span><span class="ru">Sandbox runtime</span></div></div>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn active" id="btn-ru" onclick="setLang('ru')">RU</button>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+
+<aside class="toc">
+  <div class="toc-title">
+    <span class="en">Test groups</span>
+    <span class="ru">Группы тестов</span>
+  </div>
+  <nav>
+    <ul>
+      <li><a href="#group-1"><span class="en">1. BridgeRefillMint dispatch</span><span class="ru">1. Precompile bridge_lock</span></a></li>
+      <li><a href="#group-2"><span class="en">2. CrossChainCheck rejection paths</span><span class="ru">2. CrossChainCheck — отказы</span></a></li>
+      <li><a href="#group-3"><span class="en">3. Verifier.Executor end-to-end replay</span><span class="ru">3. Verifier.Executor — replay</span></a></li>
+      <li><a href="#group-4"><span class="en">4. state_root bridge_mints</span><span class="ru">4. state_root и bridge_mints</span></a></li>
+      <li><a href="#group-5"><span class="en">5. EthereumRpc layer</span><span class="ru">5. Слой EthereumRpc</span></a></li>
+      <li><a href="#group-6"><span class="en">6. PropCheck supply invariant</span><span class="ru">6. PropCheck — supply invariant</span></a></li>
+      <li><a href="#group-7"><span class="en">7. Anvil end-to-end</span><span class="ru">7. Сквозной тест на anvil</span></a></li>
+    </ul>
+  </nav>
+</aside>
+
+<div class="container">
+
+  <!-- Roles legend -->
+  <div class="roles">
+    <div class="role operator">
+      <div class="name">Bridge operator</div>
+      <div class="where">config :chain, :bridge_operator_address</div>
+      <div class="note">
+        <span class="en">Matchmaker. Calls <code>bridge_lock</code> after observing a finalized Ethereum <code>Locked</code> event. Compromise = DoS only (every settlement is preimage-locked).</span>
+        <span class="ru">Матчмейкер. Дёргает <code>bridge_lock</code> после наблюдения финализированного события <code>Locked</code> на Ethereum. Компрометация = только DoS (каждый перевод залочен под preimage).</span>
+      </div>
+    </div>
+    <div class="role bridge">
+      <div class="name">BridgeRefillMint</div>
+      <div class="where">precompile @ 0x2D00…0003</div>
+      <div class="note">
+        <span class="en">One-shot atomic <code>bridge_lock</code>: mints USD-stable, immediately HTLC-locks the pool against <code>htlc_hash</code>, dedups by <code>eth_event_id</code>.</span>
+        <span class="ru">Атомарный one-shot <code>bridge_lock</code>: минтит USD-stable, тут же блокирует пул в HTLC под <code>htlc_hash</code>, дедупает по <code>eth_event_id</code>.</span>
+      </div>
+    </div>
+    <div class="role verifier">
+      <div class="name">Chain verifier</div>
+      <div class="where">Chain.Verifier.{Executor,CrossChainCheck}</div>
+      <div class="note">
+        <span class="en">Independently re-checks every <code>bridge_mints</code> row of every block against the Ethereum execution layer before accepting.</span>
+        <span class="ru">Независимо перепроверяет каждую строку <code>bridge_mints</code> каждого блока против execution layer Ethereum перед принятием.</span>
+      </div>
+    </div>
+    <div class="role eth">
+      <div class="name">EthereumRpc</div>
+      <div class="where">Chain.Verifier.EthereumRpc{,.HTTP,.Stub}</div>
+      <div class="note">
+        <span class="en">Fail-closed adapter. Resolves config to a module (Stub for tests, HTTP for prod). HTTP impl binds chain_id + contract + topic0 to reject mis-bound logs.</span>
+        <span class="ru">Fail-closed адаптер. Резолвит конфиг в модуль (Stub в тестах, HTTP в проде). HTTP-имплементация связывает chain_id + контракт + topic0, чтобы отклонять несвязанные логи.</span>
+      </div>
+    </div>
+    <div class="role user">
+      <div class="name">User on Ethereum</div>
+      <div class="where">arbitrary EOA holding USDC</div>
+      <div class="note">
+        <span class="en">Locks USDC in the BridgeHTLC contract on Ethereum, gets USD-stable on 2D after the operator&rsquo;s atomic <code>bridge_lock</code>.</span>
+        <span class="ru">Блокирует USDC в контракте BridgeHTLC на Ethereum, получает USD-stable на 2D после атомарного <code>bridge_lock</code> от оператора.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 1: BridgeRefillMint dispatch -->
+  <div class="group" id="group-1">
+    <div class="group-title">
+      <span class="en">1. BridgeRefillMint dispatch</span>
+      <span class="ru">1. Диспетчер BridgeRefillMint</span>
+      <span class="badge htlc-badge">
+        <span class="en">21 tests</span>
+        <span class="ru">21 тест</span>
+      </span>
+    </div>
+    <div class="group-intro">
+      <span class="en">
+        Unit tests on the precompile at <code>0x2D…0003</code>. Each test builds a
+        <code>Chain.Precompile.Context</code> directly and calls <code>execute/3</code> &mdash;
+        no block producer round-trip. Covers the legacy-selector removal, happy-path mint+lock,
+        operator authorization, ABI bounds, dedup invariants, deterministic <code>eth_event_id</code>,
+        the <code>0x2D…0003</code> address constant, and the DB-level CHECK constraint.
+      </span>
+      <span class="ru">
+        Юнит-тесты precompile по адресу <code>0x2D…0003</code>. Каждый тест собирает
+        <code>Chain.Precompile.Context</code> напрямую и вызывает <code>execute/3</code> &mdash;
+        без round-trip через block producer. Покрывает удаление legacy-селектора, happy-path mint+lock,
+        авторизацию оператора, границы ABI, инварианты дедупа, детерминизм <code>eth_event_id</code>,
+        константу адреса <code>0x2D…0003</code> и DB-level CHECK constraint.
+      </span>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Selector + address sanity</span>
+      <span class="ru">Селектор + адрес — sanity</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">old refill_mint selector reverts with unknown selector</span>
+        <span class="ru">старый селектор refill_mint ревертит как unknown selector</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Pre-redesign the precompile exposed <code>refill_mint(uint64,bytes32,uint32,uint256)</code>
+          &mdash; mint without lock, with a separate operator <code>lock</code> step. After consolidation
+          into the atomic <code>bridge_lock</code>, the legacy selector must be gone for good. The test
+          calls the old keccak-derived 4-byte selector and asserts the precompile reverts with
+          <code>"unknown selector or malformed args"</code>; nothing lands in <code>bridge_mints</code>.
+        </span>
+        <span class="ru">
+          До редизайна precompile предоставлял <code>refill_mint(uint64,bytes32,uint32,uint256)</code>
+          &mdash; чистый mint без lock, и отдельный шаг <code>lock</code> у оператора. После
+          консолидации в атомарный <code>bridge_lock</code> старого селектора быть не должно. Тест
+          вызывает legacy-селектор (4 байта от keccak имени старой функции) и проверяет, что precompile
+          ревертит с <code>"unknown selector or malformed args"</code>; в <code>bridge_mints</code> ничего не падает.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:revert, "unknown selector or malformed args"}</span>
+        <span class="assert-pill">bridge_mints count == 0</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">unknown selector reverts</span>
+        <span class="ru">неизвестный селектор ревертит</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Sanity-check on the dispatch table: a 4-byte selector that doesn&rsquo;t match
+          <code>bridge_lock</code> reverts with the same message rather than executing some
+          accidental fallback. Empty calldata is supplied to make sure the revert is on the
+          selector branch and not on arg parsing.
+        </span>
+        <span class="ru">
+          Проверка таблицы диспетчеризации: 4-байтный селектор, не совпадающий с
+          <code>bridge_lock</code>, ревертит с тем же сообщением, без случайного fallback&rsquo;а.
+          Calldata пустая &mdash; чтобы revert был именно на селекторе, а не на парсинге аргументов.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">selector == 0xFFFFFFFF</span>
+        <span class="assert-pill fail">{:revert, "unknown selector or malformed args"}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">truncated args reverts</span>
+        <span class="ru">обрезанный args ревертит</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The <code>bridge_lock</code> selector is correct, but the args payload is a single byte
+          instead of the seven-slot 224-byte ABI tuple. The pattern-match on the args binary fails
+          and the precompile returns the generic "unknown selector or malformed args" revert &mdash;
+          no partial state, no half-decoded values reaching the DB.
+        </span>
+        <span class="ru">
+          Селектор <code>bridge_lock</code> корректный, но payload args &mdash; один байт вместо
+          ABI-кортежа из семи слотов на 224 байта. Pattern-match по бинарю args не проходит,
+          precompile возвращает общий revert &mdash; без частичного state, без полудекодированных
+          значений в БД.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">selector == bridge_lock</span>
+        <span class="assert-pill fail">args == &lt;&lt;0&gt;&gt; (1 byte)</span>
+        <span class="assert-pill fail">{:revert, "unknown selector or malformed args"}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">address/0 returns 0x2D…0003</span>
+        <span class="ru">address/0 возвращает 0x2D…0003</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The precompile lives at the chain&rsquo;s third reserved bridge slot:
+          <code>&lt;&lt;0x2D, 0::144, 0x03&gt;&gt;</code>. The constant matters because the verifier&rsquo;s
+          dispatcher routes calls by exact 20-byte address; a typo here would silently disable the bridge
+          for both producer and verifier without any other test catching it.
+        </span>
+        <span class="ru">
+          Precompile живёт в третьем зарезервированном слоте моста:
+          <code>&lt;&lt;0x2D, 0::144, 0x03&gt;&gt;</code>. Константа важна потому, что диспетчер верификатора
+          маршрутизирует вызовы по точному 20-байтному адресу: опечатка тут молча выключила бы мост
+          и для producer, и для verifier &mdash; ни один другой тест этого бы не поймал.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">address == &lt;&lt;0x2D, 0::144, 0x03&gt;&gt;</span>
+        <span class="assert-pill">byte_size == 20</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Happy path — atomic mint + HTLC-lock in one call</span>
+      <span class="ru">Happy path — атомарный mint + HTLC-lock одним вызовом</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">atomic refill + HTLC lock, no operator float</span>
+        <span class="ru">атомарный refill + HTLC lock, без float у оператора</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The whole point of <code>bridge_lock</code>: in one execute call the operator&rsquo;s pool
+          is minted with <code>amount</code> and the same amount is immediately HTLC-locked under
+          <code>htlc_hash</code>. End balance of the operator stays at zero &mdash; no &ldquo;here is
+          the money, lock it next block&rdquo; window where a key-compromise could divert the float.
+          The test asserts one row in <code>bridge_mints</code> and one in <code>htlc_swaps</code>,
+          a <code>BridgeLocked</code> log with the correct topics
+          (<code>eth_event_id</code> in topic1, <code>htlc_hash</code> in topic2,
+          padded receiver in topic3, <code>amount</code> in data), and that the persisted
+          <code>bridge_mints</code> row carries every input field verbatim.
+        </span>
+        <span class="ru">
+          В этом весь смысл <code>bridge_lock</code>: за один execute пул оператора пополняется на
+          <code>amount</code>, и тут же тот же amount блокируется в HTLC под <code>htlc_hash</code>.
+          Итоговый баланс оператора остаётся нулевым &mdash; нет промежуточного окна
+          &laquo;вот деньги, локни следующим блоком&raquo;, в котором компрометация ключа могла бы
+          увести float. Тест проверяет одну строку в <code>bridge_mints</code> и одну в
+          <code>htlc_swaps</code>, лог <code>BridgeLocked</code> с правильными topics
+          (<code>eth_event_id</code> в topic1, <code>htlc_hash</code> в topic2,
+          паддингованный receiver в topic3, <code>amount</code> в data),
+          и что персистнутая строка <code>bridge_mints</code> содержит каждое входное поле дословно.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor operator">Operator</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">bridge_lock(eth_event_id, amount, htlc_hash, receiver, deadline)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bridge">0x2D…0003</span>
+      </div>
+      <div class="flow">
+        <span class="actor bridge">0x2D…0003</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">+amount mint</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">−amount → HTLC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor db">bridge_mints + htlc_swaps</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok, &lt;&lt;&gt;&gt;, [log]}</span>
+        <span class="assert-pill">operator balance == 0</span>
+        <span class="assert-pill">bridge_mints count == 1</span>
+        <span class="assert-pill">htlc_swaps count == 1</span>
+        <span class="assert-pill">log.topic1 == eth_event_id</span>
+        <span class="assert-pill">row.amount == amount</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">two distinct events produce two rows</span>
+        <span class="ru">два разных события дают две строки</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Two consecutive <code>bridge_lock</code> calls with different <code>eth_tx_hash</code>
+          and different <code>htlc_hash</code> both succeed: the dedup index is on the derived
+          <code>eth_event_id</code>, so distinct Ethereum events are not blocked from each other.
+          Asserts both <code>bridge_mints</code> and both <code>htlc_swaps</code> rows landed.
+        </span>
+        <span class="ru">
+          Два последовательных вызова <code>bridge_lock</code> с разными <code>eth_tx_hash</code>
+          и разными <code>htlc_hash</code> оба проходят: индекс дедупа стоит на производном
+          <code>eth_event_id</code>, поэтому разные события Ethereum друг друга не блокируют.
+          Тест проверяет, что обе строки в <code>bridge_mints</code> и обе в <code>htlc_swaps</code> на месте.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">2× {:ok, _, _}</span>
+        <span class="assert-pill">bridge_mints count == 2</span>
+        <span class="assert-pill">htlc_swaps count == 2</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Authorization — only the operator can refill</span>
+      <span class="ru">Авторизация — refill дозволен только оператору</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">non-operator caller reverts</span>
+        <span class="ru">вызов от неоператора ревертит</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A stranger address calls <code>bridge_lock</code> with otherwise-valid args. The first
+          guard inside the precompile compares <code>ctx.from</code> to the configured
+          <code>:bridge_operator_address</code> and reverts with
+          <code>"caller is not the bridge operator"</code>. Critical: <code>bridge_mints</code> stays
+          at zero rows, so no mint can ever happen from a non-operator caller, even if every other
+          field on the call was perfectly valid.
+        </span>
+        <span class="ru">
+          Сторонний адрес вызывает <code>bridge_lock</code> с во всём остальном валидными args.
+          Первый guard внутри precompile сверяет <code>ctx.from</code> с настроенным
+          <code>:bridge_operator_address</code> и ревертит с
+          <code>"caller is not the bridge operator"</code>. Главное: <code>bridge_mints</code>
+          остаётся пустой, так что mint от неоператора в принципе невозможен &mdash; даже если все
+          остальные поля вызова идеально корректны.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor user">stranger</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">bridge_lock(…)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bridge">0x2D…0003</span>
+        <span class="arrow">&rarr;</span>
+        <span class="fail-amount">REVERT</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:revert, "caller is not the bridge operator"}</span>
+        <span class="assert-pill">bridge_mints count == 0</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">ABI bounds — every numeric field is range-checked</span>
+      <span class="ru">Границы ABI — каждое числовое поле проверено по диапазону</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">amount must be positive</span>
+        <span class="ru">amount обязан быть положительным</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A <code>bridge_lock</code> with <code>amount = 0</code> reverts before touching the DB.
+          Zero-mint would create an empty <code>htlc_swaps</code> row that nothing could ever
+          claim or refund &mdash; explicitly disallowed at the precompile boundary.
+        </span>
+        <span class="ru">
+          <code>bridge_lock</code> с <code>amount = 0</code> ревертит до похода в БД. Mint на ноль
+          создал бы пустую строку <code>htlc_swaps</code>, которую нельзя было бы ни заклеймить,
+          ни рефанднуть &mdash; явно запрещено на границе precompile.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">amount == 0</span>
+        <span class="assert-pill fail">{:revert, "amount must be positive"}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_chain_id must be positive</span>
+        <span class="ru">eth_chain_id обязан быть положительным</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          <code>chain_id == 0</code> is not a real Ethereum-family chain ID and would let an attacker
+          craft a fake &ldquo;cross-chain&rdquo; event whose <code>eth_event_id</code> hash collapses
+          across forks. The precompile rejects up front, before computing the event id.
+        </span>
+        <span class="ru">
+          <code>chain_id == 0</code> &mdash; не существующий chain_id Ethereum-семейства, и при нуле
+          атакующий мог бы сконструировать поддельное &laquo;cross-chain&raquo; событие, у которого
+          хеш <code>eth_event_id</code> совпадал бы между форками. Precompile отклоняет сразу,
+          до вычисления event id.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">chain_id == 0</span>
+        <span class="assert-pill fail">{:revert, "eth_chain_id must be positive"}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_chain_id over int64 max is rejected</span>
+        <span class="ru">eth_chain_id больше int64 max отклоняется</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The persisted column is <code>BIGINT</code> (signed int64). The precompile must reject
+          values that would either overflow or be silently truncated by Postgres &mdash; here a value
+          one above signed int64 max. The error message is the precise
+          <code>"eth_chain_id exceeds storable range"</code> rather than a generic boundary error.
+        </span>
+        <span class="ru">
+          Колонка хранения &mdash; <code>BIGINT</code> (signed int64). Precompile обязан отклонять
+          значения, которые могли бы переполниться или быть молча обрезанными Postgres &mdash; здесь
+          значение на единицу выше int64 max. Сообщение об ошибке именно
+          <code>"eth_chain_id exceeds storable range"</code>, а не generic boundary error.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">chain_id == 2^63</span>
+        <span class="assert-pill fail">{:revert, "eth_chain_id exceeds storable range"}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_chain_id over uint64 max is rejected (ABI high-bits guard)</span>
+        <span class="ru">eth_chain_id больше uint64 max отклоняется (ABI high-bits guard)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The ABI slot is 256 bits but the function declares <code>uint64</code>. A value of
+          <code>2^64</code> sets bits in the high portion of the slot &mdash; standard ABI says any
+          such call is malformed. The precompile rejects with a uint64-specific message so the
+          high-bits ABI violation is distinguishable from the storable-range check above.
+        </span>
+        <span class="ru">
+          ABI-слот &mdash; 256 бит, но функция объявлена как <code>uint64</code>. Значение
+          <code>2^64</code> зажигает биты в верхней части слота; стандартный ABI считает такой
+          вызов malformed. Precompile ревертит с uint64-специфичным сообщением &mdash; чтобы
+          high-bits-нарушение ABI было отличимо от проверки storable-range выше.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">chain_id == 2^64</span>
+        <span class="assert-pill fail">{:revert, "eth_chain_id exceeds uint64 range"}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_log_index over int32 max is rejected</span>
+        <span class="ru">eth_log_index больше int32 max отклоняется</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Mirror of the chain_id check, but for the persisted <code>INTEGER</code> column
+          (<code>int32</code>). Values above signed <code>int32</code> max would silently wrap on
+          insert; the precompile rejects them with a per-field message.
+        </span>
+        <span class="ru">
+          Зеркало проверки chain_id, но для колонки <code>INTEGER</code> (<code>int32</code>).
+          Значения выше signed <code>int32</code> max молча обернулись бы на insert; precompile
+          отклоняет с сообщением, специфичным для поля.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">log_index == 2^31</span>
+        <span class="assert-pill fail">{:revert, "eth_log_index exceeds storable range"}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">eth_log_index over uint32 max is rejected (ABI high-bits guard)</span>
+        <span class="ru">eth_log_index больше uint32 max отклоняется (ABI high-bits guard)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Same high-bits ABI check as for <code>chain_id</code>, applied to the
+          <code>uint32 log_index</code>: <code>2^32</code> sets bits outside the declared width and
+          is malformed regardless of column storage. Distinct error message keeps the failure mode
+          identifiable when triaging.
+        </span>
+        <span class="ru">
+          Та же high-bits-проверка ABI, что у <code>chain_id</code>, но для <code>uint32 log_index</code>:
+          <code>2^32</code> ставит биты вне объявленной ширины и считается malformed независимо
+          от хранилища. Отдельное сообщение об ошибке делает режим отказа узнаваемым при триаже.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">log_index == 2^32</span>
+        <span class="assert-pill fail">{:revert, "eth_log_index exceeds uint32 range"}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">deadline_ms exceeding int64 max reverts</span>
+        <span class="ru">deadline_ms больше int64 max ревертит</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The HTLC <code>deadline_ms</code> is also a <code>BIGINT</code>. A value at
+          <code>2^63</code> would silently wrap to a negative timestamp inside Postgres &mdash;
+          past-deadline by ~292 million years &mdash; and instantly refundable. Rejected at the
+          precompile boundary so the bug never reaches the DB.
+        </span>
+        <span class="ru">
+          HTLC <code>deadline_ms</code> тоже <code>BIGINT</code>. Значение <code>2^63</code>
+          молча обернулось бы в отрицательный timestamp внутри Postgres &mdash; deadline в прошлом
+          на ~292 миллиона лет &mdash; и стало бы мгновенно refundable. Отклонено на границе
+          precompile, чтобы баг даже не достиг БД.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">deadline_ms == 2^63</span>
+        <span class="assert-pill fail">{:revert, "deadline exceeds storable range"}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Dedup invariants — one Ethereum event ⇒ at most one mint</span>
+      <span class="ru">Инварианты дедупа — одно событие Ethereum ⇒ не более одного mint</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">duplicate eth_event_id reverts on second call (DB-level dedup)</span>
+        <span class="ru">дубликат eth_event_id ревертит на втором вызове (дедуп на уровне БД)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          First call lands a row with <code>eth_event_id = keccak(chain ‖ tx ‖ log)</code>.
+          Second call for the same Ethereum event (different <code>htlc_hash</code> to make sure
+          the dedup is on the event id, not the HTLC hash) hits the unique index on
+          <code>eth_event_id</code> and reverts with <code>"duplicate eth_event_id"</code>.
+          End state: one row, no double-mint.
+        </span>
+        <span class="ru">
+          Первый вызов кладёт строку с <code>eth_event_id = keccak(chain ‖ tx ‖ log)</code>.
+          Второй вызов для того же события Ethereum (с другим <code>htlc_hash</code> &mdash; чтобы
+          убедиться, что дедуп именно по event id, а не по HTLC hash) упирается в unique-индекс
+          на <code>eth_event_id</code> и ревертит с <code>"duplicate eth_event_id"</code>.
+          Итоговое состояние: одна строка, double-mint исключён.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor operator">Operator</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">bridge_lock(eth_event_id=X)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">OK</span>
+      </div>
+      <div class="flow">
+        <span class="actor operator">Operator</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">bridge_lock(eth_event_id=X again)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="fail-amount">REVERT</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">1st call: {:ok, _, _}</span>
+        <span class="assert-pill fail">2nd call: {:revert, "duplicate eth_event_id"}</span>
+        <span class="assert-pill">bridge_mints count == 1</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">duplicate eth_event_id cleans up htlc_swaps (no orphan lock)</span>
+        <span class="ru">дубликат eth_event_id чистит htlc_swaps (нет orphan-lock)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The dedup revert must also roll back any partial <code>htlc_swaps</code> insert from the
+          duplicate call &mdash; otherwise an attacker could fail the dedup check on purpose and
+          leave a dangling lock with operator funds frozen. After two dedup&rsquo;d calls only one
+          row exists in each table.
+        </span>
+        <span class="ru">
+          Revert от дедупа обязан также откатить и партиальный insert в <code>htlc_swaps</code>
+          из дублирующего вызова &mdash; иначе атакующий мог бы намеренно ронять проверку дедупа,
+          оставляя &laquo;висящий&raquo; lock с замороженными средствами оператора. После двух
+          дедуп-вызовов в каждой таблице лежит ровно одна строка.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">bridge_mints count == 1</span>
+        <span class="assert-pill">htlc_swaps count == 1</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">duplicate htlc_hash reverts WITHOUT inserting bridge_mints</span>
+        <span class="ru">дубликат htlc_hash ревертит БЕЗ записи в bridge_mints</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A pre-existing <code>htlc_swaps</code> row blocks any future <code>bridge_lock</code>
+          using the same <code>htlc_hash</code>. The order matters: the precompile must check the
+          HTLC-hash collision <em>before</em> inserting into <code>bridge_mints</code>, otherwise
+          a transient bridge_mints row would survive a rollback that doesn&rsquo;t happen at the
+          precompile-revert boundary.
+        </span>
+        <span class="ru">
+          Уже существующая строка в <code>htlc_swaps</code> блокирует любой будущий
+          <code>bridge_lock</code> с тем же <code>htlc_hash</code>. Порядок важен: precompile должен
+          проверять коллизию HTLC-hash <em>до</em> вставки в <code>bridge_mints</code> &mdash;
+          иначе временная строка <code>bridge_mints</code> пережила бы rollback, которого не
+          происходит на границе precompile-revert.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:revert, "htlc hash already used"}</span>
+        <span class="assert-pill">bridge_mints count == 0</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">compute_event_id/3 — deterministic, cross-fork unique</span>
+      <span class="ru">compute_event_id/3 — детерминизм, уникальность между форками</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">is deterministic and equals keccak256(chain_id ‖ tx_hash ‖ log_index)</span>
+        <span class="ru">детерминистичен и равен keccak256(chain_id ‖ tx_hash ‖ log_index)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Two calls with identical inputs produce the identical 32-byte event id. The output also
+          matches a hand-rolled <code>ExKeccak.hash_256(&lt;&lt;chain_id::64, tx_hash::32, log_index::32&gt;&gt;)</code>
+          &mdash; pinning the encoding so an accidental change to byte sizes or order breaks loudly.
+        </span>
+        <span class="ru">
+          Два вызова с одинаковыми входами дают идентичный 32-байтный event id. Результат также
+          совпадает с ручным <code>ExKeccak.hash_256(&lt;&lt;chain_id::64, tx_hash::32, log_index::32&gt;&gt;)</code>
+          &mdash; кодировка зафиксирована, и любое случайное изменение размеров или порядка байт
+          сломается громко.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">first == second</span>
+        <span class="assert-pill">first == ExKeccak.hash_256(chain ‖ tx ‖ idx)</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">different log_index ⇒ different event_id</span>
+        <span class="ru">разный log_index ⇒ разный event_id</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The same Ethereum tx can carry multiple bridge events (multi-call contract, batched
+          locks). Each must hash to a distinct event id so dedup permits all of them but lets only
+          one mint per emitted log.
+        </span>
+        <span class="ru">
+          В одной Ethereum-транзакции может быть несколько bridge-событий (multi-call контракт,
+          batched lock). Каждое обязано хешироваться в свой event id &mdash; так дедуп пропустит
+          все, но не даст mint больше одного на каждый эмитнутый лог.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">id(chain, tx, 0) != id(chain, tx, 1)</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">different chain_id ⇒ different event_id (cross-fork uniqueness)</span>
+        <span class="ru">разный chain_id ⇒ разный event_id (уникальность между форками)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The same <code>tx_hash</code> + <code>log_index</code> on Ethereum mainnet
+          (<code>chain_id 1</code>) and Sepolia (<code>chain_id 11_155_111</code>) must hash to
+          different event ids. Without the chain_id in the preimage, an attacker could mirror a
+          mainnet event into a Sepolia replay and double-spend. The test asserts the two ids
+          differ for that exact pair.
+        </span>
+        <span class="ru">
+          Один и тот же <code>tx_hash</code> + <code>log_index</code> на Ethereum mainnet
+          (<code>chain_id 1</code>) и Sepolia (<code>chain_id 11_155_111</code>) обязаны хешироваться
+          в разные event id. Без chain_id в preimage атакующий мог бы зеркалить mainnet-событие в
+          Sepolia-replay и сделать double-spend. Тест проверяет, что эти два id различаются.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">id(1, tx, 0) != id(11_155_111, tx, 0)</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">DB-level CHECK — defense in depth on raw inserts</span>
+      <span class="ru">CHECK на уровне БД — defense in depth для прямых insert&rsquo;ов</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects rows whose eth_event_id is not 32 bytes</span>
+        <span class="ru">отклоняет строки с eth_event_id не на 32 байта</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Even if all the precompile-side checks were bypassed (e.g. a future migration writes
+          directly), the database itself enforces <code>octet_length(eth_event_id) = 32</code>
+          via a CHECK constraint. A raw <code>Repo.insert_all</code> with a 3-byte event id
+          raises <code>Postgrex.Error</code> matching the
+          <code>bridge_mints_eth_event_id_length_chk</code> constraint name.
+        </span>
+        <span class="ru">
+          Даже если все проверки на стороне precompile обойдены (например, будущая миграция пишет
+          напрямую), сама БД обеспечивает <code>octet_length(eth_event_id) = 32</code> через
+          CHECK constraint. Сырой <code>Repo.insert_all</code> с 3-байтным event id роняет
+          <code>Postgrex.Error</code>, имя constraint &mdash;
+          <code>bridge_mints_eth_event_id_length_chk</code>.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">Postgrex.Error: bridge_mints_eth_event_id_length_chk</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 2: CrossChainCheck rejection paths -->
+  <div class="group" id="group-2">
+    <div class="group-title">
+      <span class="en">2. CrossChainCheck rejection paths</span>
+      <span class="ru">2. CrossChainCheck — пути отказа</span>
+      <span class="badge verifier-badge">
+        <span class="en">15 tests</span>
+        <span class="ru">15 тестов</span>
+      </span>
+    </div>
+    <div class="group-intro">
+      <span class="en">
+        <code>Chain.Verifier.CrossChainCheck.verify_block_refills/1</code> is the per-block hook that
+        replays every <code>bridge_mints</code> row of a candidate block against the Ethereum execution
+        layer through the <code>EthereumRpc</code> adapter (Stub here). A block is accepted only when
+        every row passes three checks: (1) verified <code>Locked</code> event with matching amount,
+        chain, contract, topic, finality; (2) the lock was not refunded on Ethereum; (3) the hash has
+        not been used by the claimer. Tests here exhaustively cover the rejection reasons and the
+        invariant that the verifier halts on the first failing row.
+      </span>
+      <span class="ru">
+        <code>Chain.Verifier.CrossChainCheck.verify_block_refills/1</code> &mdash; per-block hook,
+        который проигрывает каждую строку <code>bridge_mints</code> кандидатного блока против execution
+        layer Ethereum через адаптер <code>EthereumRpc</code> (здесь &mdash; Stub). Блок принимается
+        только если каждая строка прошла три проверки: (1) подтверждено событие <code>Locked</code> с
+        совпадающими amount, chain, contract, topic, finality; (2) lock не был зарефанджен на Ethereum;
+        (3) hash не использован клеймером. Тесты исчерпывающе покрывают причины отказа и инвариант
+        &laquo;верификатор останавливается на первой упавшей строке&raquo;.
+      </span>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Accept paths</span>
+      <span class="ru">Пути принятия</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">returns :ok when the block has no bridge_mints</span>
+        <span class="ru">возвращает :ok если в блоке нет bridge_mints</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A block with zero rows in <code>bridge_mints</code> has nothing to cross-check &mdash;
+          the function short-circuits to <code>:ok</code> without making any RPC call. Verified by
+          arming the stub to return <code>:not_found</code> and confirming the function does
+          not invoke it (return is still <code>:ok</code>).
+        </span>
+        <span class="ru">
+          Блок с нулевыми строками в <code>bridge_mints</code> нечего сверять &mdash; функция
+          short-circuit&rsquo;ит в <code>:ok</code> без RPC-вызовов. Проверяется тем, что stub
+          заряжен на возврат <code>:not_found</code>, а функция всё равно отдаёт <code>:ok</code>
+          (значит, до stub дело не дошло).
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok}</span>
+        <span class="assert-pill info">no RPC call made</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">returns :ok when every bridge_lock mint verifies</span>
+        <span class="ru">возвращает :ok если каждый bridge_lock mint верифицируется</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Three <code>bridge_mints</code> rows in block 7. The stub returns
+          <code>{:ok, :verified, %{receiver_on_2d, htlc_hash_on_eth}}</code> for each
+          (looking up the matching <code>htlc_hash</code> from the row by <code>tx_hash</code>),
+          and the per-row receiver/hash matches the corresponding <code>htlc_swaps</code> row.
+          All three pass; <code>verify_block_refills/1</code> returns <code>:ok</code>.
+        </span>
+        <span class="ru">
+          Три строки в <code>bridge_mints</code> блока 7. Stub возвращает
+          <code>{:ok, :verified, %{receiver_on_2d, htlc_hash_on_eth}}</code> для каждой
+          (подтягивая правильный <code>htlc_hash</code> из строки по <code>tx_hash</code>),
+          а receiver/hash каждой строки совпадает с соответствующей строкой в <code>htlc_swaps</code>.
+          Все три проходят; <code>verify_block_refills/1</code> возвращает <code>:ok</code>.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">3 mints in block 7</span>
+        <span class="assert-pill">3× stub :verified</span>
+        <span class="assert-pill">{:ok}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">accepts when refund check returns :ok</span>
+        <span class="ru">принимает, когда проверка refund отдаёт :ok</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          With the <code>:verified</code> stub plus an explicit
+          <code>:ethereum_rpc_stub_lock_active = :ok</code> override, the refund check
+          (<code>check_not_refunded</code>) explicitly returns <code>:ok</code>. The full chain of
+          three checks succeeds and the block passes. Pin-test for the &ldquo;happy on all three
+          legs&rdquo; configuration so a future refactor can&rsquo;t collapse the legs by accident.
+        </span>
+        <span class="ru">
+          С stub&rsquo;ом <code>:verified</code> плюс явным override
+          <code>:ethereum_rpc_stub_lock_active = :ok</code> проверка refund
+          (<code>check_not_refunded</code>) явно возвращает <code>:ok</code>. Полная цепочка из
+          трёх проверок успешна, блок принят. Pin-тест на конфигурацию &laquo;happy на всех трёх
+          ногах&raquo; &mdash; чтобы будущий рефактор случайно не схлопнул их в одну.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">stub :verified</span>
+        <span class="assert-pill">refund stub :ok</span>
+        <span class="assert-pill">{:ok}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">accepts when hash_used check returns :ok</span>
+        <span class="ru">принимает, когда проверка hash_used отдаёт :ok</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Symmetric &ldquo;all green&rdquo; pin for the third leg: <code>check_hash_not_used</code>
+          stubbed to <code>:ok</code>. The block passes. Together with the previous test, ensures
+          neither follow-up check can be silently bypassed.
+        </span>
+        <span class="ru">
+          Симметричный &laquo;all green&raquo; pin для третьей ноги: <code>check_hash_not_used</code>
+          стабается в <code>:ok</code>. Блок принят. Вместе с предыдущим тестом гарантирует, что
+          ни одна follow-up проверка не может быть молча обойдена.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">stub :verified</span>
+        <span class="assert-pill">hash_used stub :ok</span>
+        <span class="assert-pill">{:ok}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Reject reasons propagated from the Ethereum RPC layer</span>
+      <span class="ru">Причины отказа, прокинутые со слоя Ethereum RPC</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects with :unbacked_bridge_mint when stub returns :not_found</span>
+        <span class="ru">отвергает с :unbacked_bridge_mint когда stub отдаёт :not_found</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The Ethereum receipt for the claimed <code>tx_hash</code> doesn&rsquo;t exist (stub
+          <code>{:error, :not_found}</code>). Verifier wraps the failure in a structured
+          <code>{:error, :unbacked_bridge_mint, details}</code> tuple where
+          <code>details.eth_event_id</code> identifies the offending row and
+          <code>details.rpc_reason</code> carries the underlying RPC reason for triage.
+        </span>
+        <span class="ru">
+          Ethereum-receipt по заявленному <code>tx_hash</code> не существует (stub
+          <code>{:error, :not_found}</code>). Verifier оборачивает отказ в структурированный
+          tuple <code>{:error, :unbacked_bridge_mint, details}</code>, где
+          <code>details.eth_event_id</code> указывает на проблемную строку, а
+          <code>details.rpc_reason</code> несёт underlying-причину RPC для триажа.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :unbacked_bridge_mint, details}</span>
+        <span class="assert-pill">details.eth_event_id == row.eth_event_id</span>
+        <span class="assert-pill">details.rpc_reason == :not_found</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects with :unbacked_bridge_mint and propagates :amount_mismatch</span>
+        <span class="ru">отвергает с :unbacked_bridge_mint, причина &mdash; :amount_mismatch</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The Ethereum log&rsquo;s amount field doesn&rsquo;t match the claimed mint amount (stub
+          <code>{:error, :amount_mismatch}</code>). Same wrapper, but
+          <code>details.rpc_reason</code> is <code>:amount_mismatch</code> &mdash; pin-test that
+          the wrapper preserves the underlying reason so dashboards can break out
+          <em>why</em> a refill was rejected.
+        </span>
+        <span class="ru">
+          Поле amount в Ethereum-логе не совпадает с заявленным mint-amount (stub
+          <code>{:error, :amount_mismatch}</code>). Тот же wrapper, но <code>details.rpc_reason</code>
+          &mdash; <code>:amount_mismatch</code>. Pin-тест на то, что wrapper сохраняет
+          underlying-причину &mdash; чтобы дашборды могли разбивать &laquo;почему именно&raquo;
+          refill был отвергнут.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :unbacked_bridge_mint, %{rpc_reason: :amount_mismatch}}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects with :unbacked_bridge_mint and propagates :not_finalized</span>
+        <span class="ru">отвергает с :unbacked_bridge_mint, причина &mdash; :not_finalized</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The Ethereum receipt is present but its block number is past the finalized head &mdash; the
+          event might still be reverted by a deep reorg. Stub returns <code>{:error, :not_finalized}</code>;
+          verifier rejects the block with that reason wrapped in <code>:unbacked_bridge_mint</code>.
+        </span>
+        <span class="ru">
+          Ethereum-receipt существует, но его номер блока больше finalized-head &mdash; событие ещё
+          может быть отменено глубоким reorg&rsquo;ом. Stub возвращает <code>{:error, :not_finalized}</code>;
+          verifier отклоняет блок с этой причиной, обёрнутой в <code>:unbacked_bridge_mint</code>.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :unbacked_bridge_mint, %{rpc_reason: :not_finalized}}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Halt-on-first-failure invariant</span>
+      <span class="ru">Инвариант &laquo;останов на первой ошибке&raquo;</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">halts on the first failing row and returns its eth_event_id</span>
+        <span class="ru">останавливается на первой упавшей строке и возвращает её eth_event_id</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Three rows in block 7 with event ids <code>0xAA…</code>, <code>0xBB…</code>,
+          <code>0xCC…</code>. A stateful stub returns <code>:verified</code> for the first call and
+          <code>:not_found</code> for everything after. Verifier halts on row 2 (<code>0xBB…</code>)
+          and the returned <code>details.eth_event_id</code> is exactly <code>0xBB…</code>.
+          This is the property that lets ops engineers grep one event id out of
+          a multi-mint block when triaging a verifier reject.
+        </span>
+        <span class="ru">
+          Три строки в блоке 7 с event id <code>0xAA…</code>, <code>0xBB…</code>, <code>0xCC…</code>.
+          Stateful stub возвращает <code>:verified</code> на первый вызов и <code>:not_found</code>
+          на всё остальное. Verifier останавливается на второй строке (<code>0xBB…</code>),
+          и возвращаемый <code>details.eth_event_id</code> &mdash; ровно <code>0xBB…</code>.
+          Это то свойство, которое позволяет ops-инженерам выгрепать один event id из мульти-mint
+          блока при триаже verifier-reject.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :unbacked_bridge_mint, details}</span>
+        <span class="assert-pill">details.eth_event_id == 0xBB…</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Stub contract — every row field is forwarded verbatim</span>
+      <span class="ru">Контракт stub&rsquo;а — каждое поле строки прокинуто дословно</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">passes every row field (chain_id, tx_hash, log_index, amount) to the stub</span>
+        <span class="ru">прокидывает каждое поле строки (chain_id, tx_hash, log_index, amount) в stub</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Inserts a row with <code>chain_id 11_155_111</code> (Sepolia), an explicit
+          <code>amount 12_345</code>, and a random <code>tx_hash</code> + <code>log_index</code>.
+          The stub receives those four arguments via a function trap and asserts they match the
+          row exactly. Catches future regressions where the wrapper might pass the wrong field
+          (e.g. mistakenly the <code>applied_block_number</code> instead of
+          <code>eth_log_index</code>).
+        </span>
+        <span class="ru">
+          Кладёт строку с <code>chain_id 11_155_111</code> (Sepolia), явным <code>amount 12_345</code>
+          и случайными <code>tx_hash</code> + <code>log_index</code>. Stub получает эти четыре
+          аргумента через function-ловушку и проверяет, что они дословно совпадают со строкой.
+          Ловит будущие регрессии, в которых wrapper мог бы прокинуть не то поле (например, по
+          ошибке <code>applied_block_number</code> вместо <code>eth_log_index</code>).
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">stub got chain_id == row.eth_chain_id</span>
+        <span class="assert-pill">stub got tx_hash == row.eth_tx_hash</span>
+        <span class="assert-pill">stub got log_index == row.eth_log_index</span>
+        <span class="assert-pill">stub got amount == 12_345</span>
+        <span class="assert-pill">{:ok}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">ignores bridge_mints from other blocks</span>
+        <span class="ru">игнорирует bridge_mints из других блоков</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The query filters by <code>applied_block_number</code>. A failing row in block 99 must
+          not affect <code>verify_block_refills(7)</code> &mdash; the stub is armed with
+          <code>:not_found</code>, but only the row in block 7 (here: none) would ever reach it.
+          Returns <code>:ok</code>.
+        </span>
+        <span class="ru">
+          Запрос фильтрует по <code>applied_block_number</code>. Падающая строка в блоке 99 не
+          должна аффектить <code>verify_block_refills(7)</code> &mdash; stub заряжен на
+          <code>:not_found</code>, но до него дошла бы только строка из блока 7 (здесь &mdash; ни одной).
+          Возвращает <code>:ok</code>.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">row in block 99, not 7</span>
+        <span class="assert-pill">{:ok}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Fail-closed on missing or mismatched chain-side data</span>
+      <span class="ru">Fail-closed при отсутствии или рассогласовании chain-side данных</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects bridge_mints row with nil htlc_hash (fail-closed)</span>
+        <span class="ru">отвергает строку bridge_mints с nil htlc_hash (fail-closed)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A <code>bridge_mints</code> row with <code>htlc_hash = nil</code> &mdash; a row created
+          by the legacy non-atomic <code>refill_mint</code> path that no longer has matching
+          HTLC scaffolding &mdash; cannot be verified end-to-end. Even with the
+          <code>{:ok, :verified}</code> stub the verifier rejects with
+          <code>:missing_htlc_hash</code> rather than silently passing.
+        </span>
+        <span class="ru">
+          Строка <code>bridge_mints</code> с <code>htlc_hash = nil</code> &mdash; строка, оставшаяся
+          от legacy неатомарного пути <code>refill_mint</code>, у которой нет соответствующей
+          HTLC-обвязки &mdash; не может быть верифицирована end-to-end. Даже со stub&rsquo;ом
+          <code>{:ok, :verified}</code> verifier отклоняет с <code>:missing_htlc_hash</code>,
+          а не молча проходит.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :missing_htlc_hash, details}</span>
+        <span class="assert-pill">details.eth_event_id == row.eth_event_id</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects when receiver_on_2d does not match htlc_swaps receiver</span>
+        <span class="ru">отвергает когда receiver_on_2d не совпадает с receiver в htlc_swaps</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The Ethereum log carries the intended 2D receiver in its data. The verifier reads that
+          out via <code>verified.receiver_on_2d</code> and compares against the receiver field of
+          the matching <code>htlc_swaps</code> row. A mismatch means the operator HTLC-locked to
+          the wrong address &mdash; rejected with <code>:receiver_mismatch</code>.
+        </span>
+        <span class="ru">
+          Ethereum-лог несёт целевого 2D-receiver&rsquo;а в data. Verifier читает его через
+          <code>verified.receiver_on_2d</code> и сравнивает с полем receiver соответствующей
+          строки <code>htlc_swaps</code>. Несовпадение означает, что оператор HTLC-залочил на
+          неправильный адрес &mdash; отказ с <code>:receiver_mismatch</code>.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :receiver_mismatch, _details}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects with :htlc_hash_mismatch when htlc_hash differs from Ethereum topic[1]</span>
+        <span class="ru">отвергает с :htlc_hash_mismatch когда htlc_hash отличается от Ethereum topic[1]</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          <code>htlc_hash</code> is committed to the Ethereum log as <code>topics[1]</code>; the 2D
+          row carries it independently. If they disagree, the operator locked under a different
+          hash than the user&rsquo;s Ethereum lock &mdash; the cross-chain HTLC pair is broken.
+          The error carries both expected and actual values for diff inspection.
+        </span>
+        <span class="ru">
+          <code>htlc_hash</code> закоммичен в Ethereum-лог как <code>topics[1]</code>; 2D-строка
+          несёт его независимо. Если значения расходятся &mdash; оператор залочил под другим хешем,
+          чем Ethereum-lock пользователя; cross-chain HTLC-пара сломана. Ошибка несёт expected и
+          actual значения для diff-инспекции.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :htlc_hash_mismatch, details}</span>
+        <span class="assert-pill">details.expected == htlc_hash_eth</span>
+        <span class="assert-pill">details.actual == htlc_hash_2d</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Refund + claimerUsedHash — second-leg checks against Ethereum</span>
+      <span class="ru">Refund + claimerUsedHash — проверки второй ноги против Ethereum</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects with :ethereum_lock_refunded when Refund event found</span>
+        <span class="ru">отвергает с :ethereum_lock_refunded когда найден Refund-событие</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Even if the Ethereum <code>Locked</code> event is fine, the user might already have
+          refunded their lock. The follow-up <code>check_not_refunded</code> stub returns
+          <code>{:error, :ethereum_lock_refunded}</code> &mdash; verifier rejects the whole block
+          and the error carries both the offending event id and the htlc_hash so ops can find the
+          Ethereum tx that consumed the funds.
+        </span>
+        <span class="ru">
+          Даже если Ethereum-событие <code>Locked</code> в порядке, пользователь мог уже зарефанднуть
+          свой lock. Последующий stub <code>check_not_refunded</code> возвращает
+          <code>{:error, :ethereum_lock_refunded}</code> &mdash; verifier отклоняет весь блок,
+          и ошибка несёт и event id, и htlc_hash &mdash; чтобы ops могли найти Ethereum-tx, который
+          съел средства.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :ethereum_lock_refunded, details}</span>
+        <span class="assert-pill">details.htlc_hash == row.htlc_hash</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects with :hash_already_used_by_claimer when claimerUsedHash is true</span>
+        <span class="ru">отвергает с :hash_already_used_by_claimer когда claimerUsedHash = true</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The third Ethereum-side check covers a subtle attack: the operator&rsquo;s own claimer
+          address might have already consumed this <code>htlc_hash</code> in a prior transaction.
+          The <code>check_hash_not_used</code> stub returns
+          <code>{:error, :hash_already_used_by_claimer}</code>; verifier rejects with that exact
+          atom and includes the htlc_hash in the details.
+        </span>
+        <span class="ru">
+          Третья проверка на стороне Ethereum закрывает тонкую атаку: claimer-адрес самого оператора
+          мог уже потратить этот <code>htlc_hash</code> в предыдущей транзакции. Stub
+          <code>check_hash_not_used</code> возвращает
+          <code>{:error, :hash_already_used_by_claimer}</code>; verifier отклоняет с этим точным
+          атомом и кладёт htlc_hash в details.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :hash_already_used_by_claimer, details}</span>
+        <span class="assert-pill">details.htlc_hash == row.htlc_hash</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 3: Verifier.Executor end-to-end replay -->
+  <div class="group" id="group-3">
+    <div class="group-title">
+      <span class="en">3. Verifier.Executor end-to-end replay</span>
+      <span class="ru">3. Verifier.Executor — end-to-end replay</span>
+      <span class="badge verifier-badge">
+        <span class="en">3 tests</span>
+        <span class="ru">3 теста</span>
+      </span>
+    </div>
+    <div class="group-intro">
+      <span class="en">
+        Where Group 2 unit-tests <code>CrossChainCheck</code> in isolation, this group hands the
+        verifier a real signed <code>bridge_lock</code> precompile-call tx (RLP-encoded by the same
+        path as production) and asserts the full <code>verify_and_commit/1</code> pipeline:
+        decode → execute → cross-chain check → commit / rollback. Confirms that a verified block
+        actually advances the tip and a rejected block rolls back every side effect (operator
+        balance, <code>bridge_mints</code>, <code>blocks_tip</code>).
+      </span>
+      <span class="ru">
+        Если Group 2 проверяет <code>CrossChainCheck</code> изолированно, эта группа передаёт
+        верификатору настоящую подписанную bridge_lock-tx (RLP-кодированную тем же путём, что и
+        в проде), и валидирует полный пайплайн <code>verify_and_commit/1</code>: декод → execute
+        → cross-chain check → commit / rollback. Подтверждает, что верифицированный блок
+        реально продвигает tip, а отклонённый откатывает каждый side-effect (баланс оператора,
+        <code>bridge_mints</code>, <code>blocks_tip</code>).
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">accepts the block when verifier-stub returns :verified</span>
+        <span class="ru">принимает блок когда verifier-stub отдаёт :verified</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Genesis state has the operator seeded with 1M USD-stable. A signed
+          <code>bridge_lock</code> tx for 5M is built (RLP, EIP-155 signature with the operator
+          private key, chain_id 11_565). The stub returns <code>:verified</code> with matching
+          receiver and htlc_hash. <code>verify_and_commit/1</code> returns <code>{:ok, 1}</code>
+          (1 tx applied). Operator balance stays within the no-fee/with-fee corridor
+          [seed − 100k, seed]; <code>bridge_mints</code> and <code>htlc_swaps</code> each carry
+          one row.
+        </span>
+        <span class="ru">
+          В genesis оператор посажен с 1M USD-stable. Собирается подписанная bridge_lock-tx на 5M
+          (RLP, EIP-155-подпись приватным ключом оператора, chain_id 11_565). Stub возвращает
+          <code>:verified</code> с совпадающими receiver и htlc_hash. <code>verify_and_commit/1</code>
+          возвращает <code>{:ok, 1}</code> (1 tx применена). Баланс оператора остаётся в коридоре
+          без/с-комиссии [seed − 100k, seed]; в <code>bridge_mints</code> и <code>htlc_swaps</code>
+          по одной строке.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor operator">Operator</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">RLP signed bridge_lock(5M)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor verifier">Verifier</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">verify_and_commit</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">{:ok, 1}</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok, 1}</span>
+        <span class="assert-pill">balance ∈ [seed − 100k, seed]</span>
+        <span class="assert-pill">bridge_mints count == 1</span>
+        <span class="assert-pill">htlc_swaps count == 1</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects the block and rolls back when verifier-stub returns :not_found</span>
+        <span class="ru">отвергает блок и откатывает когда verifier-stub отдаёт :not_found</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Same signed tx, but the stub now reports the Ethereum event missing. The verifier
+          executes the tx, sees the cross-chain check fail, and rolls back the surrounding
+          transaction. Three independent state assertions confirm the rollback: zero rows in
+          <code>bridge_mints</code>, operator balance equal to its untouched seed,
+          and <code>blocks_tip</code> still at block 0. This is the property that protects the
+          chain from honoring an unbacked mint &mdash; even if the tx survives signature/structure
+          checks, the final commit is gated on cross-chain verification.
+        </span>
+        <span class="ru">
+          Та же подписанная tx, но stub теперь сообщает, что Ethereum-event отсутствует. Verifier
+          исполняет tx, видит провал cross-chain check и откатывает обёртывающую транзакцию.
+          Три независимых state-assert&rsquo;а подтверждают rollback: ноль строк в
+          <code>bridge_mints</code>, баланс оператора равен нетронутому seed, и
+          <code>blocks_tip</code> всё ещё на блоке 0. Это свойство, защищающее цепь от honor&rsquo;а
+          unbacked-mint: даже если tx прошла проверку подписи и структуры, финальный commit
+          гейтнут cross-chain верификацией.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor operator">Operator</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">RLP signed bridge_lock</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor verifier">Verifier</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">verify_and_commit</span>
+        <span class="arrow">&rarr;</span>
+        <span class="fail-amount">REJECTED → rollback</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, {:unbacked_bridge_mint, _}}</span>
+        <span class="assert-pill">bridge_mints count == 0</span>
+        <span class="assert-pill">balance == seed (untouched)</span>
+        <span class="assert-pill">blocks_tip.number == 0</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects with rpc_reason propagated from amount mismatch</span>
+        <span class="ru">отвергает с rpc_reason из amount mismatch</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The end-to-end equivalent of the unit-level <code>:amount_mismatch</code> case in Group 2.
+          The stub returns <code>{:error, :amount_mismatch}</code>; the verifier&rsquo;s top-level
+          error tuple unwraps the inner <code>%{rpc_reason: :amount_mismatch}</code>. Confirms the
+          rpc_reason survives all the way through <code>verify_and_commit/1</code> &mdash; not just
+          <code>verify_block_refills/1</code> &mdash; so the same triage signal reaches operators
+          regardless of which entry point fired.
+        </span>
+        <span class="ru">
+          End-to-end эквивалент unit-теста <code>:amount_mismatch</code> из Group 2. Stub возвращает
+          <code>{:error, :amount_mismatch}</code>; верхний error-tuple verifier&rsquo;а разворачивает
+          вложенный <code>%{rpc_reason: :amount_mismatch}</code>. Подтверждает, что rpc_reason
+          доживает до конца <code>verify_and_commit/1</code> &mdash; не только
+          <code>verify_block_refills/1</code> &mdash; и операторы получают одинаковый
+          triage-сигнал независимо от того, какой entry point сработал.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, {:unbacked_bridge_mint, %{details: %{rpc_reason: :amount_mismatch}}}}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 4: state_root bridge_mints -->
+  <div class="group" id="group-4">
+    <div class="group-title">
+      <span class="en">4. state_root bridge_mints coverage</span>
+      <span class="ru">4. Покрытие bridge_mints в state_root</span>
+      <span class="badge htlc-badge">
+        <span class="en">5 tests</span>
+        <span class="ru">5 тестов</span>
+      </span>
+    </div>
+    <div class="group-intro">
+      <span class="en">
+        Every <code>bridge_mints</code> row must be folded into the chain&rsquo;s <code>state_root</code>
+        &mdash; otherwise a malicious producer could insert a row in its own DB without the verifier
+        catching the tampering at the consensus level. These five tests pin: (a) inclusion of
+        <code>bridge_mints</code> changes the root, (b) row order does <em>not</em> change the root,
+        and (c) every consensus-relevant field of the row (<code>amount</code>, <code>htlc_hash</code>,
+        nil-vs-non-nil <code>htlc_hash</code>) is part of the per-row hash. Five tests are cherry-picked
+        from <code>state_root_test.exs</code> &mdash; the file also has 6 general-purpose account-state
+        tests that belong to the main integration story, not the bridge subsystem.
+      </span>
+      <span class="ru">
+        Каждая строка <code>bridge_mints</code> обязана быть свёрнута в <code>state_root</code> цепи,
+        иначе вредоносный producer мог бы вставить строку в свою БД, и verifier не поймал бы подмену
+        на consensus-уровне. Эти пять тестов фиксируют: (a) включение <code>bridge_mints</code>
+        меняет root, (b) порядок строк <em>не</em> меняет root, и (c) каждое
+        consensus-значимое поле строки (<code>amount</code>, <code>htlc_hash</code>,
+        nil-vs-non-nil <code>htlc_hash</code>) участвует в per-row хеше. Пять тестов выделены из
+        <code>state_root_test.exs</code>: в файле также 6 общих account-state тестов, которые
+        относятся к основному integration-нарративу, а не к bridge-подсистеме.
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">state root changes when a bridge_mint row is added</span>
+        <span class="ru">state root меняется при добавлении строки bridge_mint</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The fundamental inclusion property: compute the root, insert one <code>bridge_mints</code>
+          row, recompute. The two roots must differ. Without this property a verifier could not
+          tell the difference between &ldquo;the producer claimed N mints&rdquo; and &ldquo;the
+          producer&rsquo;s DB has N+1 rows&rdquo;.
+        </span>
+        <span class="ru">
+          Фундаментальное свойство inclusion: вычислили root, вставили одну строку
+          <code>bridge_mints</code>, пересчитали. Два root&rsquo;а обязаны различаться. Без этого
+          свойства verifier не отличил бы &laquo;producer заявил N mint&rsquo;ов&raquo; от
+          &laquo;в БД producer&rsquo;а N+1 строк&raquo;.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">root_before != root_after</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">state root is independent of bridge_mint insertion order</span>
+        <span class="ru">state root не зависит от порядка вставки bridge_mint</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Insert two rows in [A, B] order, capture root, wipe, insert in [B, A] order, capture
+          again. The two roots must be identical. Producer and verifier may execute the underlying
+          transactions in different physical insert orders &mdash; the consensus root must be
+          ordering-independent (folded with a canonical sort, typically by the unique
+          <code>eth_event_id</code>).
+        </span>
+        <span class="ru">
+          Вставили две строки в порядке [A, B], сняли root, очистили, вставили в порядке [B, A],
+          сняли снова. Два root&rsquo;а обязаны быть идентичны. Producer и verifier могут
+          выполнять underlying-транзакции в разном физическом порядке вставки &mdash; consensus-root
+          обязан быть order-independent (свёртка по канонической сортировке, обычно по уникальному
+          <code>eth_event_id</code>).
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">root([A, B]) == root([B, A])</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">state root changes when bridge_mint amount differs</span>
+        <span class="ru">state root меняется при разном bridge_mint amount</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Pin every other field to a fixed value, vary only <code>amount</code>: <code>100</code>
+          vs <code>200</code>. The roots must differ. Without this, a producer could swap the
+          mint amount in its DB without invalidating the block hash &mdash; effectively printing
+          USD-stable out of consensus thin air.
+        </span>
+        <span class="ru">
+          Зафиксировали все остальные поля, варьируем только <code>amount</code>:
+          <code>100</code> vs <code>200</code>. Root&rsquo;ы обязаны различаться. Иначе producer
+          мог бы поменять mint-amount в своей БД, не инвалидируя block hash &mdash; то есть печатать
+          USD-stable из consensus-воздуха.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">root(amount=100) != root(amount=200)</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">state root changes when bridge_mint htlc_hash differs</span>
+        <span class="ru">state root меняется при разном bridge_mint htlc_hash</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Same shape as the amount test, but for <code>htlc_hash</code>. The cross-chain HTLC pair
+          identifier is part of the consensus state &mdash; swapping it would let an attacker
+          re-target an existing mint to a different lock without leaving a trace at the block-hash
+          level.
+        </span>
+        <span class="ru">
+          Та же форма, что в тесте на amount, но для <code>htlc_hash</code>. Идентификатор
+          cross-chain HTLC-пары &mdash; часть consensus-state; подмена позволила бы атакующему
+          перенаправить существующий mint на другой lock, не оставляя следа на уровне block hash.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">root(hash=&lt;&lt;1::256&gt;&gt;) != root(hash=&lt;&lt;2::256&gt;&gt;)</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">state root differs between nil and non-nil htlc_hash</span>
+        <span class="ru">state root различается для nil и non-nil htlc_hash</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A subtle one: <code>htlc_hash = nil</code> (legacy, no HTLC pair) and
+          <code>htlc_hash = &lt;&lt;0::256&gt;&gt;</code> (32 bytes of zeros) must hash to
+          different roots. Without this distinction a malicious producer could persist
+          <code>nil</code> in its DB and let the verifier think it&rsquo;s the all-zero hash &mdash;
+          quietly bypassing the missing-htlc-hash fail-closed in Group 2.
+        </span>
+        <span class="ru">
+          Тонкий момент: <code>htlc_hash = nil</code> (legacy, без HTLC-пары) и
+          <code>htlc_hash = &lt;&lt;0::256&gt;&gt;</code> (32 нулевых байта) обязаны хешироваться
+          в разные root&rsquo;ы. Без этого различия вредоносный producer мог бы хранить в своей БД
+          <code>nil</code>, а verifier думал бы, что это all-zero hash &mdash; и тихо обходить
+          missing-htlc-hash fail-closed из Group 2.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">root(htlc_hash=nil) != root(htlc_hash=&lt;&lt;0::256&gt;&gt;)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 5: EthereumRpc layer -->
+  <div class="group" id="group-5">
+    <div class="group-title">
+      <span class="en">5. EthereumRpc layer</span>
+      <span class="ru">5. Слой EthereumRpc</span>
+      <span class="badge eth-badge">
+        <span class="en">31 tests</span>
+        <span class="ru">31 тест</span>
+      </span>
+    </div>
+    <div class="group-intro">
+      <span class="en">
+        The adapter that connects the verifier to Ethereum. Module dispatch (<code>EthereumRpc</code>)
+        is fail-closed if no implementation is configured, then forwards to either
+        <code>Stub</code> (test/dev) or <code>HTTP</code> (prod). The <code>HTTP</code> impl
+        encodes the bridge safety policy from <code>backlog/docs/doc-1</code>: <strong>chain_id +
+        contract address + topic0 are bound to config and rejected if any disagree</strong>, lowercase
+        log_index matching catches the early bug_001, raw-binary config values are explicitly
+        rejected to close the silent-typo trap, and every required key raises a descriptive
+        <code>RuntimeError</code> when unset.
+      </span>
+      <span class="ru">
+        Адаптер, связывающий verifier с Ethereum. Module dispatch (<code>EthereumRpc</code>)
+        fail-close&rsquo;ится, если имплементация не настроена, и форвардит в
+        <code>Stub</code> (test/dev) либо <code>HTTP</code> (prod). HTTP-имплементация
+        кодирует bridge safety policy из <code>backlog/docs/doc-1</code>:
+        <strong>chain_id + contract address + topic0 связаны с конфигом и отклоняются при
+        любом расхождении</strong>, lowercase log_index ловит ранний bug_001, raw-бинарные
+        значения конфига явно отклонены &mdash; чтобы закрыть silent-typo trap, и каждый
+        обязательный ключ роняет описательный <code>RuntimeError</code> если не задан.
+      </span>
+    </div>
+
+    <div class="section-note">
+      <span class="en">EthereumRpc.impl_module/0 — fail-closed dispatch</span>
+      <span class="ru">EthereumRpc.impl_module/0 — fail-closed диспетчер</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">raises when no module is configured (fail-closed)</span>
+        <span class="ru">роняет если модуль не настроен (fail-closed)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          With <code>:ethereum_rpc_module</code> unset, calling <code>impl_module/0</code> must
+          raise &mdash; not silently default to anything. A missing config in production should be
+          a loud crash, not a soft-fail that lets the verifier accept all blocks unchecked.
+        </span>
+        <span class="ru">
+          Если <code>:ethereum_rpc_module</code> не задан, вызов <code>impl_module/0</code> обязан
+          ронять &mdash; не молча fallback&rsquo;ить в что-нибудь. Отсутствие конфига в проде
+          должно быть громким крашем, а не soft-fail&rsquo;ом, при котором verifier принимает
+          любые блоки без проверки.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">RuntimeError =~ "ethereum_rpc_module is not configured"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">respects :chain, :ethereum_rpc_module override</span>
+        <span class="ru">учитывает override :chain, :ethereum_rpc_module</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Set the config key to a custom module atom and assert <code>impl_module/0</code> returns
+          exactly that. This is the seam that lets tests inject a stub without touching the
+          dispatch code.
+        </span>
+        <span class="ru">
+          Поставили ключ конфига в произвольный атом модуля и проверяем, что <code>impl_module/0</code>
+          возвращает ровно его. Это шов, через который тесты могут впихнуть stub без правки
+          dispatch-кода.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">impl_module() == SomeOtherModule</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">returns Stub when explicitly configured (test/dev path)</span>
+        <span class="ru">возвращает Stub когда явно настроен (test/dev путь)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The pin-test for the dev/test default: when <code>Stub</code> is the configured module,
+          <code>impl_module/0</code> returns <code>Stub</code>. Same path as the override test
+          but with the actual stub atom &mdash; pinning that the lookup mechanism doesn&rsquo;t
+          require any special-casing for our default.
+        </span>
+        <span class="ru">
+          Pin-тест дефолта dev/test: когда настроен <code>Stub</code>, <code>impl_module/0</code>
+          возвращает <code>Stub</code>. Тот же путь, что и override-тест, но с настоящим
+          stub-атомом &mdash; фиксирует, что lookup не требует никакого special-case&rsquo;а
+          для дефолта.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">impl_module() == Stub</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">delegates to the configured implementation</span>
+        <span class="ru">делегирует в настроенную имплементацию</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          End-to-end of the dispatch: <code>EthereumRpc.verify_locked_event/4</code> with
+          <code>:ethereum_rpc_module</code> set to <code>Stub</code> and the stub armed with
+          <code>{:error, :not_found}</code> &mdash; the call must surface the stub&rsquo;s error
+          unchanged. Catches a regression where the dispatch wrapper might mistakenly normalize
+          the response.
+        </span>
+        <span class="ru">
+          End-to-end диспетчера: <code>EthereumRpc.verify_locked_event/4</code> с
+          <code>:ethereum_rpc_module = Stub</code> и stub&rsquo;ом, заряженным на
+          <code>{:error, :not_found}</code> &mdash; вызов обязан отдать ошибку stub&rsquo;а
+          без изменений. Ловит регрессию, в которой dispatch-обёртка могла бы по ошибке
+          нормализовать ответ.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :not_found}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Stub.verify_locked_event/4 — test plumbing</span>
+      <span class="ru">Stub.verify_locked_event/4 — тестовая обвязка</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">default (no stub response) returns {:ok, :verified}</span>
+        <span class="ru">по умолчанию (без stub-response) возвращает {:ok, :verified}</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          With no stub response set, <code>Stub.verify_locked_event/4</code> falls through to a
+          permissive default. This is the &ldquo;tests don&rsquo;t need to think about stubs unless
+          they care&rdquo; ergonomic &mdash; integration-level tests that only care about the
+          producer&rsquo;s side don&rsquo;t need to wire up a stub.
+        </span>
+        <span class="ru">
+          Без заданного stub-response <code>Stub.verify_locked_event/4</code> уходит в
+          разрешающий default. Это эргономика &laquo;тестам не надо думать о stub&rsquo;ах,
+          если они им не интересны&raquo; &mdash; integration-уровень тестов, которым важна только
+          сторона producer&rsquo;а, не должен городить stub.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok, :verified, _}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">honours a fixed {:ok, :verified} response</span>
+        <span class="ru">учитывает фиксированный {:ok, :verified} response</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Setting the stub response to a fixed <code>{:ok, :verified}</code> tuple makes the
+          stub return that exact value regardless of the call args. Used by tests that want to
+          force the happy branch without caring about the verified-payload details.
+        </span>
+        <span class="ru">
+          Установка stub-response в фиксированный <code>{:ok, :verified}</code> заставляет stub
+          возвращать ровно это значение независимо от args вызова. Используется тестами,
+          которые хотят форсировать happy-ветку, не вдаваясь в детали verified-payload.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok, :verified, _}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">honours a fixed {:error, reason} response</span>
+        <span class="ru">учитывает фиксированный {:error, reason} response</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Symmetric to the verified case but for the error branch. Setting
+          <code>{:error, :amount_mismatch}</code> as the response surfaces that exact error to
+          the caller &mdash; the foundation for all the rejection-path tests in Group 2.
+        </span>
+        <span class="ru">
+          Симметрия verified-кейсу, но для error-ветки. Установка <code>{:error, :amount_mismatch}</code>
+          как response отдаёт ровно эту ошибку вызывающей стороне &mdash; фундамент для всех
+          rejection-path тестов в Group 2.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :amount_mismatch}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">calls a 4-arity stub function with the actual arguments</span>
+        <span class="ru">вызывает 4-арную stub-функцию с реальными аргументами</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The stub response can also be a function. The stub invokes it with the four call args
+          (<code>chain_id, tx_hash, log_index, amount</code>) and returns whatever the function
+          returns. Inside the function the test asserts each argument matches the literal it passed
+          in &mdash; the wire that lets stateful tests in Group 2 (multi-row, halt-on-first-failure)
+          look up rows by tx_hash.
+        </span>
+        <span class="ru">
+          Stub-response может быть и функцией. Stub вызывает её с четырьмя args
+          (<code>chain_id, tx_hash, log_index, amount</code>) и отдаёт то, что функция вернёт.
+          Внутри функции тест ассертит, что каждый аргумент совпадает с переданным литералом
+          &mdash; провод, через который stateful-тесты Group 2 (мульти-row, halt-on-first-failure)
+          поднимают строки по tx_hash.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">stub fn got chain_id == 11_155_111</span>
+        <span class="assert-pill">stub fn got tx_hash == &lt;&lt;0xAB::256&gt;&gt;</span>
+        <span class="assert-pill">stub fn got log_index == 7</span>
+        <span class="assert-pill">stub fn got amount == 1_000_000</span>
+        <span class="assert-pill fail">{:error, :not_finalized}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">HTTP impl — happy path against stubbed JSON-RPC</span>
+      <span class="ru">HTTP impl — happy path против stub&rsquo;нутого JSON-RPC</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">chain_id + address + topic0 + amount all match → :verified</span>
+        <span class="ru">chain_id + address + topic0 + amount совпали → :verified</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The HTTP impl talks JSON-RPC to Ethereum (here through <code>Req.Test</code> stubs &mdash;
+          no real socket). Default-everything stub responds with a <code>Locked</code> log at the
+          configured contract address with the configured <code>topic0</code> and the matching
+          amount; receipt block <code>0x10</code> sits below the finalized head <code>0x20</code>.
+          All four binding checks pass, return is <code>{:ok, :verified, _}</code>.
+        </span>
+        <span class="ru">
+          HTTP-имплементация говорит по JSON-RPC с Ethereum (здесь через <code>Req.Test</code>
+          stub&rsquo;ы &mdash; без реальных сокетов). Default-всё stub отдаёт лог <code>Locked</code>
+          по настроенному адресу контракта с настроенным <code>topic0</code> и совпадающим amount;
+          receipt block <code>0x10</code> ниже finalized-head <code>0x20</code>. Все четыре
+          binding-проверки проходят, возврат &mdash; <code>{:ok, :verified, _}</code>.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor verifier">Verifier</span>
+        <span class="arrow">&rarr;</span>
+        <span class="eth-op">eth_getTransactionReceipt</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor eth">Ethereum RPC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">log + receipt block</span>
+      </div>
+      <div class="flow">
+        <span class="actor verifier">Verifier</span>
+        <span class="arrow">&rarr;</span>
+        <span class="eth-op">eth_getBlockByNumber("finalized")</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor eth">Ethereum RPC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">finalized head</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok, :verified, _}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">extracts receiverOn2D from data, not topics</span>
+        <span class="ru">извлекает receiverOn2D из data, не из topics</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Pins the wire-level layout: the 2D receiver address sits in <code>data[0..31]</code>
+          (32-byte address slot), not in any topic. Test stubs three indexed topics (htlc_hash,
+          sender, claimer) plus a custom <code>data</code> payload encoding a known receiver, then
+          asserts the verified payload reflects that exact receiver. Catches future regressions
+          where someone might shuffle indexed-vs-data fields.
+        </span>
+        <span class="ru">
+          Фиксирует wire-layout: адрес 2D-receiver&rsquo;а сидит в <code>data[0..31]</code>
+          (32-байтный address-слот), не в topics. Тест stub&rsquo;ит три индексированных
+          topic (htlc_hash, sender, claimer) плюс кастомный <code>data</code> с закодированным
+          известным receiver&rsquo;ом, и ассертит, что verified-payload отражает ровно этого
+          receiver&rsquo;а. Ловит будущие регрессии, в которых кто-то перетасовал бы
+          индексированные и data-поля.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">verified.receiver_on_2d == receiver (from data)</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">extracts htlc_hash from topics[1] and sender from topics[2]</span>
+        <span class="ru">извлекает htlc_hash из topics[1] и sender из topics[2]</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Symmetric pin for the indexed-side fields. <code>htlc_hash</code> is the indexed
+          <code>topics[1]</code> (32 bytes raw); <code>sender</code> is the indexed
+          <code>topics[2]</code> (left-padded address). Both are read out and surfaced in the
+          verified payload as <code>htlc_hash_on_eth</code> and <code>sender_on_eth</code>.
+          Combined with the previous test, fully pins the <code>Locked</code> ABI shape the verifier
+          relies on.
+        </span>
+        <span class="ru">
+          Симметричный pin для индексированных полей. <code>htlc_hash</code> &mdash; индексированный
+          <code>topics[1]</code> (32 байта raw); <code>sender</code> &mdash; индексированный
+          <code>topics[2]</code> (left-padded address). Оба читаются и возвращаются в verified-payload
+          как <code>htlc_hash_on_eth</code> и <code>sender_on_eth</code>. Вместе с предыдущим
+          тестом полностью фиксирует ABI-форму события <code>Locked</code>, на которое опирается
+          verifier.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">verified.htlc_hash_on_eth == hash (from topics[1])</span>
+        <span class="assert-pill">verified.sender_on_eth == sender (from topics[2])</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">matches log at lowercase-hex logIndex >= 10 (covers bug_001)</span>
+        <span class="ru">матчит log с lowercase-hex logIndex >= 10 (покрывает bug_001)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Regression for bug_001: an early version used <code>encode_quantity</code> which produced
+          <code>"0xA"</code> for 10, while the wire-side response uses lowercase
+          <code>"0xa"</code>. The string compare silently failed for any logIndex ≥ 10, dropping
+          mints into the void. The fix forces lowercase on both sides; this test puts the bridge
+          log at index 10 with surrounding noise logs at 0&ndash;9 and asserts it&rsquo;s found.
+        </span>
+        <span class="ru">
+          Регрессия для bug_001: ранняя версия использовала <code>encode_quantity</code>, которая
+          выдавала <code>"0xA"</code> для 10, а wire-ответ &mdash; lowercase <code>"0xa"</code>.
+          Сравнение строк молча падало для любого logIndex ≥ 10 &mdash; mint&rsquo;ы уходили в
+          никуда. Фикс приводит обе стороны к lowercase; тест ставит bridge-лог на индекс 10,
+          вокруг шум-логи 0&ndash;9, и ассертит, что лог найден.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">10 noise logs at 0x0…0x9</span>
+        <span class="assert-pill">bridge log at 0xa</span>
+        <span class="assert-pill">{:ok, :verified, _}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">HTTP impl — malformed payload rejection</span>
+      <span class="ru">HTTP impl — отклонение malformed payload</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">data shorter than 192 hex chars fails with :malformed_response</span>
+        <span class="ru">data короче 192 hex-символов падает с :malformed_response</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The <code>Locked</code> data field must encode three uint256 slots
+          (<code>receiverOn2D</code>, <code>amount</code>, <code>deadline</code>) &mdash; 192 hex
+          chars after the <code>0x</code> prefix. Anything shorter is malformed and the impl
+          returns <code>:malformed_response</code> rather than silently zero-filling
+          (which would make the cross-chain check accidentally pass for an unbacked mint).
+        </span>
+        <span class="ru">
+          Поле data события <code>Locked</code> обязано кодировать три uint256-слота
+          (<code>receiverOn2D</code>, <code>amount</code>, <code>deadline</code>) &mdash; 192 hex-символа
+          после префикса <code>0x</code>. Что-либо короче &mdash; malformed, имплементация возвращает
+          <code>:malformed_response</code>, а не молча zero-fill&rsquo;ит (иначе cross-chain
+          проверка случайно прошла бы для unbacked mint).
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">data == 64 hex chars (only 1 slot)</span>
+        <span class="assert-pill fail">{:error, :malformed_response}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Event-binding rejections (merged_bug_002)</span>
+      <span class="ru">Event-binding отклонения (merged_bug_002)</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">claim chain_id != configured ethereum_chain_id → :chain_id_mismatch (no RPC call)</span>
+        <span class="ru">claim chain_id != настроенный ethereum_chain_id → :chain_id_mismatch (без RPC-вызова)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The verifier receives a row claiming <code>chain_id 137</code> (Polygon) but the local
+          config binds the verifier to <code>chain_id 1</code> (mainnet). The check fires
+          <em>before</em> any RPC call &mdash; no stub is set, and the test would fail loudly if
+          the impl did try to reach out. This is the cheapest possible reject and prevents an
+          attacker from racing the RPC with cross-chain noise.
+        </span>
+        <span class="ru">
+          Verifier получает строку, заявляющую <code>chain_id 137</code> (Polygon), но локальный
+          конфиг привязывает verifier к <code>chain_id 1</code> (mainnet). Проверка срабатывает
+          <em>до</em> любого RPC-вызова &mdash; stub не задан, тест громко упал бы, если бы
+          имплементация полезла наружу. Самый дешёвый возможный reject; не даёт атакующему
+          гонять RPC cross-chain&rsquo;ным шумом.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">claim chain_id == 137</span>
+        <span class="assert-pill">configured == 1</span>
+        <span class="assert-pill fail">{:error, :chain_id_mismatch}</span>
+        <span class="assert-pill info">no RPC call attempted</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">log.address != configured bridge_contract_address → :wrong_contract</span>
+        <span class="ru">log.address != настроенный bridge_contract_address → :wrong_contract</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The Ethereum receipt does contain a log at the requested index, but its emitting contract
+          is <em>not</em> the bridge. Without this binding, an attacker could deploy a fake bridge
+          look-alike and have its <code>Locked</code> events accepted. The impl rejects with
+          <code>:wrong_contract</code>.
+        </span>
+        <span class="ru">
+          Ethereum-receipt содержит log на запрошенном индексе, но эмитящий контракт &mdash;
+          <em>не</em> bridge. Без этого binding атакующий мог бы задеплоить фейковый
+          bridge-look-alike, и его события <code>Locked</code> принимались бы. Имплементация
+          отклоняет с <code>:wrong_contract</code>.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">log.address == 0xFFFFFFFF…</span>
+        <span class="assert-pill">configured == 0x12345678…</span>
+        <span class="assert-pill fail">{:error, :wrong_contract}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">log.topics[0] != configured locked_event_topic0 → :wrong_event_signature</span>
+        <span class="ru">log.topics[0] != настроенный locked_event_topic0 → :wrong_event_signature</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The log lives at the right contract but its <code>topics[0]</code> (the event signature
+          hash) is for a different event (here <code>Refunded</code>, not <code>Locked</code>).
+          Rejected with <code>:wrong_event_signature</code> &mdash; the third leg of the
+          chain_id + contract + topic event-binding triad.
+        </span>
+        <span class="ru">
+          Log сидит на правильном контракте, но его <code>topics[0]</code> (хеш сигнатуры события)
+          &mdash; другого события (здесь <code>Refunded</code>, не <code>Locked</code>).
+          Отказ с <code>:wrong_event_signature</code> &mdash; третья нога триады
+          chain_id + contract + topic event-binding.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">topics[0] == keccak("Refunded(bytes32)")</span>
+        <span class="assert-pill fail">{:error, :wrong_event_signature}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">HTTP impl — other rejections</span>
+      <span class="ru">HTTP impl — прочие отказы</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">log.data amount slot (bytes 32-63) != expected_amount → :amount_mismatch</span>
+        <span class="ru">amount-слот в log.data (байты 32-63) != ожидаемый amount → :amount_mismatch</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The <code>amount</code> uint256 lives at bytes 32&ndash;63 of <code>data</code> (the
+          second slot). When the on-wire amount is <code>999_999</code> but the row claims
+          <code>1_000_000</code>, the impl returns <code>:amount_mismatch</code>. Pin-test on the
+          slot offset &mdash; if someone re-orders the ABI, this catches it.
+        </span>
+        <span class="ru">
+          uint256 <code>amount</code> сидит в байтах 32&ndash;63 поля <code>data</code>
+          (второй слот). Если on-wire amount = <code>999_999</code>, а строка заявляет
+          <code>1_000_000</code>, имплементация возвращает <code>:amount_mismatch</code>.
+          Pin-тест на смещение слота: если кто-то перетасует ABI, тест это поймает.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">log amount == 999_999</span>
+        <span class="assert-pill">expected == 1_000_000</span>
+        <span class="assert-pill fail">{:error, :amount_mismatch}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">receipt block > finalized block → :not_finalized</span>
+        <span class="ru">receipt block > finalized block → :not_finalized</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Receipt at block <code>0x100</code> (256), finalized head at <code>0x10</code> (16).
+          The receipt is past the finalized head &mdash; the <code>Locked</code> event might still
+          be reverted by a deep reorg, so the impl rejects with <code>:not_finalized</code>. This
+          is the chain&rsquo;s ~12&ndash;15-minute safety lag against Ethereum reorgs.
+        </span>
+        <span class="ru">
+          Receipt в блоке <code>0x100</code> (256), finalized-head в <code>0x10</code> (16).
+          Receipt позади finalized-head &mdash; событие <code>Locked</code> ещё может быть отменено
+          глубоким reorg&rsquo;ом, поэтому имплементация отклоняет с <code>:not_finalized</code>.
+          Это safety-задержка цепи в ~12&ndash;15 минут от Ethereum-reorg&rsquo;ов.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">receipt block 256 > finalized 16</span>
+        <span class="assert-pill fail">{:error, :not_finalized}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">log_index missing from receipt → :not_found</span>
+        <span class="ru">log_index отсутствует в receipt → :not_found</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Receipt has logs at indices 0/1/2; the row claims index 5. No matching log; impl returns
+          <code>:not_found</code>. Distinct from <code>:wrong_contract</code> /
+          <code>:wrong_event_signature</code> &mdash; here the index simply doesn&rsquo;t exist.
+        </span>
+        <span class="ru">
+          В receipt есть log&rsquo;и на индексах 0/1/2; строка заявляет индекс 5. Совпадения нет,
+          имплементация возвращает <code>:not_found</code>. Отличается от <code>:wrong_contract</code> /
+          <code>:wrong_event_signature</code>: здесь индекса попросту нет.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">receipt has logs 0,1,2</span>
+        <span class="assert-pill fail">claim log_index == 5</span>
+        <span class="assert-pill fail">{:error, :not_found}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">receipt is null (tx not on chain) → :not_found</span>
+        <span class="ru">receipt = null (tx не на цепи) → :not_found</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The <code>eth_getTransactionReceipt</code> response is <code>null</code> &mdash; the tx
+          hash isn&rsquo;t on the chain at all. Impl returns <code>:not_found</code>. Same atom
+          as the missing-log case (both mean &ldquo;evidence absent&rdquo;) but a different
+          concrete cause.
+        </span>
+        <span class="ru">
+          Ответ <code>eth_getTransactionReceipt</code> &mdash; <code>null</code>; tx-hash вообще
+          не на цепи. Имплементация возвращает <code>:not_found</code>. Тот же атом, что и кейс
+          missing-log (оба значат &laquo;нет доказательства&raquo;), но другая конкретная причина.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">receipt result == null</span>
+        <span class="assert-pill fail">{:error, :not_found}</span>
+      </div>
+    </div>
+
+    <div class="section-note">
+      <span class="en">Fail-closed config — silent-typo trap closed</span>
+      <span class="ru">Fail-closed конфиг — silent-typo trap закрыт</span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">raises descriptively when :ethereum_chain_id is unset</span>
+        <span class="ru">роняет описательно когда :ethereum_chain_id не задан</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          With <code>:ethereum_chain_id</code> deleted from app env, calling
+          <code>verify_locked_event/4</code> raises with the literal phrase
+          <code>"ethereum_chain_id must be a positive integer"</code>. Descriptive raises &gt; mystery
+          stacktraces &mdash; an operator deploying a bad config sees the exact key to fix.
+        </span>
+        <span class="ru">
+          Если <code>:ethereum_chain_id</code> удалён из app env, вызов
+          <code>verify_locked_event/4</code> роняется с конкретной фразой
+          <code>"ethereum_chain_id must be a positive integer"</code>. Описательный raise &gt; mystery
+          stacktrace &mdash; оператор, выкативший плохой конфиг, сразу видит, какой именно ключ чинить.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">RuntimeError =~ "ethereum_chain_id must be a positive integer"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">raises descriptively when :bridge_contract_address is unset</span>
+        <span class="ru">роняет описательно когда :bridge_contract_address не задан</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Same shape as the chain_id check, but for the contract address. The error phrase is
+          <code>"bridge_contract_address must be a hex string"</code>.
+        </span>
+        <span class="ru">
+          Та же форма, что у проверки chain_id, но для адреса контракта. Фраза ошибки &mdash;
+          <code>"bridge_contract_address must be a hex string"</code>.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">RuntimeError =~ "bridge_contract_address must be a hex string"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">raises descriptively when :locked_event_topic0 is unset</span>
+        <span class="ru">роняет описательно когда :locked_event_topic0 не задан</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          And the third required key &mdash; the topic0 hash that pins the event signature. Phrase:
+          <code>"locked_event_topic0 must be a hex string"</code>.
+        </span>
+        <span class="ru">
+          И третий обязательный ключ &mdash; хеш topic0, фиксирующий сигнатуру события. Фраза:
+          <code>"locked_event_topic0 must be a hex string"</code>.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">RuntimeError =~ "locked_event_topic0 must be a hex string"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">raises descriptively if :bridge_contract_address is malformed hex</span>
+        <span class="ru">роняет описательно если :bridge_contract_address — невалидный hex</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Setting <code>:bridge_contract_address</code> to <code>"not-hex"</code> raises with
+          <code>"must be a 20-byte hex address"</code> &mdash; the parser is strict about both
+          length and hex-ness. Catches deploys where someone pasted a placeholder.
+        </span>
+        <span class="ru">
+          Установка <code>:bridge_contract_address</code> в <code>"not-hex"</code> ронит с
+          <code>"must be a 20-byte hex address"</code> &mdash; парсер строг и по длине, и по
+          hex-ности. Ловит деплои, в которых кто-то вставил placeholder.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">RuntimeError =~ "must be a 20-byte hex address"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects raw 20-byte binary :bridge_contract_address (silent-typo trap closed)</span>
+        <span class="ru">отвергает raw 20-байтный binary :bridge_contract_address (silent-typo trap закрыт)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          A 20-byte text typo (e.g. an accidental placeholder like <code>"placeholder20charsxx"</code>)
+          would otherwise match a <code>&lt;&lt;_::binary-20&gt;&gt;</code> clause and be silently
+          persisted as raw bytes &mdash; the verifier would then bind to a contract at the
+          ASCII-codepoints-as-bytes address. The impl explicitly requires the hex form and raises
+          on raw 20-byte binaries.
+        </span>
+        <span class="ru">
+          20-байтная текстовая опечатка (например, случайный placeholder типа <code>"placeholder20charsxx"</code>)
+          иначе матчила бы клоз <code>&lt;&lt;_::binary-20&gt;&gt;</code> и молча сохранялась как
+          raw-байты &mdash; verifier тогда привязался бы к контракту по адресу
+          ASCII-codepoints-as-bytes. Имплементация явно требует hex-форму и ронится на raw
+          20-байтных бинарях.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">config == raw 20-byte binary</span>
+        <span class="assert-pill fail">RuntimeError =~ "must be a 20-byte hex address"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects raw 32-byte binary :locked_event_topic0 (silent-typo trap closed)</span>
+        <span class="ru">отвергает raw 32-байтный binary :locked_event_topic0 (silent-typo trap закрыт)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Symmetric to the address case &mdash; a 32-byte raw binary in the topic0 slot would
+          otherwise be persisted as raw bytes instead of decoded from hex, leading to a topic0
+          made of ASCII codepoints. Hex form is required.
+        </span>
+        <span class="ru">
+          Симметрия адресному кейсу: raw 32-байтный бинарь в слоте topic0 иначе сохранился бы
+          как raw-байты вместо декода из hex &mdash; и topic0 оказался бы из ASCII-codepoint&rsquo;ов.
+          Требуется hex-форма.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">config == raw 32-byte binary</span>
+        <span class="assert-pill fail">RuntimeError =~ "must be a 32-byte hex topic"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">accepts :bridge_contract_address as 0x-prefixed hex</span>
+        <span class="ru">принимает :bridge_contract_address как 0x-prefix hex</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          With <code>"0x" + 40-char lowercase hex</code> the impl accepts the value, stubs
+          a happy receipt, and returns <code>:verified</code>. The conventional form developers
+          paste from Etherscan.
+        </span>
+        <span class="ru">
+          При <code>"0x" + 40-символьный lowercase hex</code> имплементация принимает значение,
+          stub&rsquo;ит happy-receipt и возвращает <code>:verified</code>. Привычная форма,
+          которую разработчики копируют с Etherscan.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">config == "0x" + 40-char hex</span>
+        <span class="assert-pill">{:ok, :verified, _}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">accepts :bridge_contract_address as bare 40-char hex</span>
+        <span class="ru">принимает :bridge_contract_address как bare 40-символьный hex</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Without the <code>0x</code> prefix &mdash; just the 40-char hex string. Also accepted.
+          Tolerant about the prefix-or-not split that occasionally trips up config tooling.
+        </span>
+        <span class="ru">
+          Без префикса <code>0x</code> &mdash; просто 40-символьный hex-string. Тоже принимается.
+          Терпимо относится к тому, есть префикс или нет &mdash; этот сплит время от времени
+          ломает config-tooling.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">config == bare 40-char hex</span>
+        <span class="assert-pill">{:ok, :verified, _}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">accepts :locked_event_topic0 as bare 64-char hex</span>
+        <span class="ru">принимает :locked_event_topic0 как bare 64-символьный hex</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Same prefix-tolerance for topic0: a bare 64-char hex string parses to the expected
+          32-byte topic. <code>:verified</code> on the happy stub.
+        </span>
+        <span class="ru">
+          Та же толерантность к префиксу для topic0: bare 64-символьный hex-string парсится в
+          ожидаемый 32-байтный topic. <code>:verified</code> на happy-stub&rsquo;е.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">config == bare 64-char hex</span>
+        <span class="assert-pill">{:ok, :verified, _}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">accepts :ethereum_chain_id as a strict integer string</span>
+        <span class="ru">принимает :ethereum_chain_id как strict integer string</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Some environment-variable layers stringify everything. The impl accepts a string like
+          <code>"42"</code> as long as it&rsquo;s a strict integer; a stub call with chain_id 42
+          then verifies fine. No silent <code>String.to_integer</code> &mdash; see the next test
+          for the rejection case.
+        </span>
+        <span class="ru">
+          Некоторые слои env-переменных превращают всё в строки. Имплементация принимает строку
+          вида <code>"42"</code>, если это strict integer; stub-вызов с chain_id 42 затем
+          верифицируется без проблем. Никакого молчаливого <code>String.to_integer</code> &mdash;
+          см. следующий тест для случая отказа.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">config == "42"</span>
+        <span class="assert-pill">{:ok, :verified, _}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">rejects :ethereum_chain_id with garbage suffix</span>
+        <span class="ru">отвергает :ethereum_chain_id с garbage suffix</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          <code>"1mainnet"</code> would parse as <code>1</code> with permissive parsing &mdash;
+          and silently bind the verifier to the wrong chain. Strict integer parsing rejects the
+          trailing garbage with the same descriptive raise as the unset key case.
+        </span>
+        <span class="ru">
+          <code>"1mainnet"</code> при пермиссивном парсинге распарсилось бы в <code>1</code>
+          и молча привязало verifier к неправильной цепи. Strict integer-парсинг отклоняет
+          trailing-garbage тем же описательным raise, что и unset-кейс.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">config == "1mainnet"</span>
+        <span class="assert-pill fail">RuntimeError =~ "must be a positive integer"</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 6: PropCheck supply invariant -->
+  <div class="group" id="group-6">
+    <div class="group-title">
+      <span class="en">6. PropCheck supply invariant</span>
+      <span class="ru">6. PropCheck — supply invariant</span>
+      <span class="badge prop-badge">
+        <span class="en">2 properties</span>
+        <span class="ru">2 property</span>
+      </span>
+    </div>
+    <div class="group-intro">
+      <span class="en">
+        Two PropCheck properties &mdash; 30 random sequences each &mdash; that hammer the supply
+        invariant from many random angles example-based tests can&rsquo;t cover. The invariant:
+        <code>sum_of_all_account_balances + sum_locked_in_active_htlcs == sum_of_accepted_bridge_locks</code>.
+        Each iteration runs in a sandboxed Postgres transaction that rolls back at the end &mdash;
+        so 30 sequences don&rsquo;t accumulate state.
+      </span>
+      <span class="ru">
+        Два PropCheck-property &mdash; по 30 случайных последовательностей &mdash; которые молотят
+        supply-инвариант со множества случайных углов, какие example-тесты не покрывают. Инвариант:
+        <code>sum_of_all_account_balances + sum_locked_in_active_htlcs == sum_of_accepted_bridge_locks</code>.
+        Каждая итерация запускается в sandboxed Postgres-транзакции с rollback в конце &mdash;
+        так что 30 последовательностей не накапливают state.
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">bridge_lock alone: all minted supply is locked in HTLCs (zero operator float)</span>
+        <span class="ru">только bridge_lock: вся mint-supply заблокирована в HTLC (нулевой float у оператора)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Generator: a non-empty list of <code>(amount, eth_tx_hash)</code> pairs &mdash; <code>amount</code>
+          uniform in <code>[1, 1_000_000]</code>, <code>eth_tx_hash</code> 32 random bytes. For each
+          pair the property issues a <code>bridge_lock</code> as the operator and accumulates the
+          amounts of the successful ones. Two assertions hold across all 30 random runs:
+          (1) operator balance == 0, every minted unit got HTLC-locked, no float left behind;
+          (2) sum of all locked HTLCs == sum of accepted bridge_lock amounts. Random tx_hash
+          collisions naturally create dedup reverts &mdash; the property must remain satisfied
+          for whichever subset survives.
+        </span>
+        <span class="ru">
+          Генератор: непустой список пар <code>(amount, eth_tx_hash)</code> &mdash; <code>amount</code>
+          равномерно в <code>[1, 1_000_000]</code>, <code>eth_tx_hash</code> &mdash; 32 случайных
+          байта. Для каждой пары property делает <code>bridge_lock</code> от оператора и накапливает
+          amount&rsquo;ы успешных. Два assert&rsquo;а держатся во всех 30 случайных прогонах:
+          (1) баланс оператора == 0, каждая mint-единица заблокирована в HTLC, float не остался;
+          (2) сумма всех locked-HTLC == сумме принятых bridge_lock-amount&rsquo;ов. Случайные
+          коллизии tx_hash естественно создают revert&rsquo;ы по дедупу &mdash; инвариант должен
+          выполняться для того подмножества, что выжило.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">numtests == 30</span>
+        <span class="assert-pill">operator balance == 0</span>
+        <span class="assert-pill">Σ locked HTLCs == Σ accepted bridge_locks</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">supply invariant across bridge_lock+lock+claim sequences</span>
+        <span class="ru">supply-инвариант для последовательностей bridge_lock+lock+claim</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Stronger version: the generator emits arbitrary mixes of three operations across three
+          actors (operator + actors A + B):
+          <code>{:bridge_lock, amount, eth_tx_hash}</code>,
+          <code>{:lock, sender_kind, receiver_kind, amount, preimage}</code>,
+          <code>{:claim_index, idx}</code>. The reducer applies each in order, drops failures, and
+          maintains a map of currently-locked HTLCs so the claim path can pick a real one.
+          Final assertion: <code>sum_account_balances + sum_locked_HTLCs == sum_accepted_mints</code>.
+          That this holds across 30 random sequences of these three primitives is what
+          gives the bridge its no-mint-out-of-thin-air guarantee at runtime, not just by code review.
+        </span>
+        <span class="ru">
+          Более строгая версия: генератор выдаёт произвольные миксы трёх операций по трём актёрам
+          (operator + actor A + actor B):
+          <code>{:bridge_lock, amount, eth_tx_hash}</code>,
+          <code>{:lock, sender_kind, receiver_kind, amount, preimage}</code>,
+          <code>{:claim_index, idx}</code>. Reducer применяет каждую по порядку, дропает падения,
+          поддерживает map текущих locked HTLC &mdash; чтобы claim-путь мог выбрать реальный hash.
+          Итоговый assert: <code>sum_account_balances + sum_locked_HTLCs == sum_accepted_mints</code>.
+          То, что это держится во всех 30 случайных последовательностях из этих трёх примитивов,
+          даёт мосту гарантию no-mint-out-of-thin-air в runtime &mdash; а не только через code review.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">numtests == 30</span>
+        <span class="assert-pill">3 operations × 3 actors</span>
+        <span class="assert-pill">Σ balances + Σ locked == Σ mints</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- Group 7: Anvil end-to-end -->
+  <div class="group" id="group-7">
+    <div class="group-title">
+      <span class="en">7. Anvil end-to-end</span>
+      <span class="ru">7. Сквозной тест на anvil</span>
+      <span class="badge anvil-badge">
+        <span class="en">7 tests · gated</span>
+        <span class="ru">7 тестов · gated</span>
+      </span>
+    </div>
+    <div class="group-intro">
+      <span class="en">
+        The capstone group: a real Foundry <code>anvil</code> mainnet fork is brought up, the
+        <code>BridgeHTLC.sol</code> contract is deployed, and Alice locks real mainnet USDC into
+        it. The <code>HTTP</code> impl then verifies the actual receipt, the <code>bridge_lock</code>
+        precompile mints + locks against it on 2D, <code>CrossChainCheck</code> succeeds, and the
+        operator-claim and Alice-refund Ethereum-side paths are exercised end-to-end. Tagged
+        <code>:anvil</code> and excluded from default <code>mix test</code> runs &mdash; needs
+        <code>ANVIL_FORK_URL</code> and <code>--include anvil</code> to run.
+      </span>
+      <span class="ru">
+        Capstone-группа: поднимается настоящий Foundry <code>anvil</code> mainnet-fork,
+        деплоится контракт <code>BridgeHTLC.sol</code>, Alice блокирует в нём настоящий
+        mainnet-USDC. Затем <code>HTTP</code>-имплементация верифицирует реальный receipt,
+        precompile <code>bridge_lock</code> mint&rsquo;ит + lock&rsquo;ит против него на 2D,
+        <code>CrossChainCheck</code> проходит, и пути operator-claim и Alice-refund на стороне
+        Ethereum прогоняются end-to-end. Тегнуто <code>:anvil</code> и исключено из дефолтного
+        <code>mix test</code> &mdash; нужны <code>ANVIL_FORK_URL</code> и <code>--include anvil</code>.
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">verify_locked_event returns :verified against real anvil receipt</span>
+        <span class="ru">verify_locked_event возвращает :verified против реального anvil-receipt</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The smallest end-to-end loop: deploy <code>BridgeHTLC</code> on the anvil fork, call
+          <code>create_lock!</code> for 2M USDC with a known <code>receiver_on_2d</code>, then
+          point the production <code>HTTP.verify_locked_event/4</code> at the real receipt over
+          the anvil JSON-RPC. The verifier returns <code>:verified</code> with the expected
+          <code>htlc_hash_on_eth</code> and decoded <code>receiver_on_2d</code>. Proves the
+          wire-decoding path actually works against a non-stubbed Ethereum.
+        </span>
+        <span class="ru">
+          Самый маленький end-to-end-цикл: деплоим <code>BridgeHTLC</code> на anvil-fork, вызываем
+          <code>create_lock!</code> на 2M USDC с известным <code>receiver_on_2d</code>, затем
+          натравливаем prod-овый <code>HTTP.verify_locked_event/4</code> на настоящий receipt
+          через anvil JSON-RPC. Verifier возвращает <code>:verified</code> с ожидаемыми
+          <code>htlc_hash_on_eth</code> и декодированным <code>receiver_on_2d</code>. Доказывает,
+          что путь wire-декода действительно работает против не-stub&rsquo;нутого Ethereum.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor user">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="eth-op">create_lock(2M USDC, receiver_on_2d)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor eth">BridgeHTLC @ anvil</span>
+      </div>
+      <div class="flow">
+        <span class="actor verifier">Verifier (HTTP)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="eth-op">verify_locked_event(chain, tx, log_index, amount)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor eth">anvil RPC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">{:ok, :verified, …}</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok, :verified, verified}</span>
+        <span class="assert-pill">verified.htlc_hash_on_eth == htlc_hash</span>
+        <span class="assert-pill">verified.receiver_on_2d == decoded receiver</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">finalized block tag works on anvil (post-merge)</span>
+        <span class="ru">тег finalized работает на anvil (post-merge)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The verifier&rsquo;s finality check sends <code>eth_getBlockByNumber("finalized")</code>.
+          Pre-merge anvil didn&rsquo;t support that tag. This test calls the RPC directly and asserts
+          a 200 response with a numeric <code>result.number</code>. Pin-test on anvil&rsquo;s
+          post-merge support &mdash; if a future anvil dropped the tag, the bridge&rsquo;s entire
+          finality story would silently break.
+        </span>
+        <span class="ru">
+          Проверка финальности у verifier шлёт <code>eth_getBlockByNumber("finalized")</code>.
+          Pre-merge anvil этот тег не поддерживал. Тест дёргает RPC напрямую и ассертит ответ 200
+          с числовым <code>result.number</code>. Pin-тест на post-merge-поддержку anvil &mdash;
+          если будущая версия anvil уронит тег, вся история финальности моста молча сломается.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">status == 200</span>
+        <span class="assert-pill">result.number =~ "0x…"</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">full path: bridge_lock precompile + CrossChainCheck via HTTP impl</span>
+        <span class="ru">полный путь: bridge_lock precompile + CrossChainCheck через HTTP impl</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The full bridge-in path against a live chain: Alice locks 5M USDC on the anvil
+          <code>BridgeHTLC</code>, the HTTP verifier confirms the receipt, the operator runs the
+          atomic <code>bridge_lock</code> precompile on 2D using the real
+          <code>chain_id + tx_hash + log_index + amount + htlc_hash + receiver</code>, and finally
+          <code>CrossChainCheck.verify_block_refills/1</code> walks the new <code>bridge_mints</code>
+          row and re-confirms it against the same real chain. End-state: the
+          <code>htlc_swaps</code> receiver matches what the verifier said, and the cross-chain
+          check passes.
+        </span>
+        <span class="ru">
+          Полный путь bridge-in против живой цепи: Alice блокирует 5M USDC на
+          <code>BridgeHTLC</code> в anvil, HTTP-verifier подтверждает receipt, оператор запускает
+          атомарный precompile <code>bridge_lock</code> на 2D с реальными
+          <code>chain_id + tx_hash + log_index + amount + htlc_hash + receiver</code>, и наконец
+          <code>CrossChainCheck.verify_block_refills/1</code> проходит по новой строке
+          <code>bridge_mints</code> и переподтверждает её против той же реальной цепи.
+          Итоговое состояние: receiver в <code>htlc_swaps</code> совпадает с тем, что сказал verifier,
+          cross-chain-проверка проходит.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor user">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="eth-op">create_lock(5M USDC)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor eth">BridgeHTLC</span>
+      </div>
+      <div class="flow">
+        <span class="actor operator">Operator</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">bridge_lock(real eth_event_id, htlc_hash, receiver)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor bridge">0x2D…0003</span>
+      </div>
+      <div class="flow">
+        <span class="actor verifier">Verifier</span>
+        <span class="arrow">&rarr;</span>
+        <span class="htlc-op">verify_block_refills(100)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor eth">anvil RPC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">{:ok}</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">{:ok, :verified, verified}</span>
+        <span class="assert-pill">verified.receiver_on_2d == receiver_bin</span>
+        <span class="assert-pill">{:ok, &lt;&lt;&gt;&gt;, [_log]}</span>
+        <span class="assert-pill">swap.receiver == verified.receiver_on_2d</span>
+        <span class="assert-pill">verify_block_refills == :ok</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">operator claims lock with preimage — USDC transferred, lock deactivated</span>
+        <span class="ru">оператор клеймит lock по preimage — USDC переведены, lock деактивирован</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The Ethereum-side closing leg of a bridge-in: the operator claims Alice&rsquo;s lock with
+          the preimage. Pre-claim assertion: the lock is active. Post-claim: the lock is no longer
+          active and the operator&rsquo;s USDC balance increased by exactly the lock amount.
+          Confirms the BridgeHTLC contract&rsquo;s claim-flow shape from the operator&rsquo;s side.
+        </span>
+        <span class="ru">
+          Закрывающая нога bridge-in на стороне Ethereum: оператор клеймит lock Alice&rsquo;ы
+          по preimage. Pre-claim assert: lock активен. Post-claim: lock больше не активен,
+          USDC-баланс оператора вырос ровно на amount lock&rsquo;а. Подтверждает форму claim-flow
+          контракта BridgeHTLC со стороны оператора.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor operator">Operator</span>
+        <span class="arrow">&rarr;</span>
+        <span class="eth-op">claim(htlc_hash, preimage)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor eth">BridgeHTLC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">+amount USDC → operator</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">pre: lock_active == true</span>
+        <span class="assert-pill">post: lock_active == false</span>
+        <span class="assert-pill">operator_after - operator_before == amount</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">Alice refunds after deadline — USDC returned, lock deactivated</span>
+        <span class="ru">Alice рефандит после deadline — USDC возвращены, lock деактивирован</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The other Ethereum-side closing leg: if the bridge stalls and the deadline passes,
+          Alice can refund. The test creates a 4M lock, advances anvil&rsquo;s clock past the
+          2-hour deadline (<code>advance_time!(rpc_url, 7201)</code>), then calls
+          <code>refund_lock!</code>. Alice&rsquo;s balance is back to where it started, and the
+          lock is deactivated. The user-side safety net for any operator outage.
+        </span>
+        <span class="ru">
+          Другая закрывающая нога на стороне Ethereum: если bridge застрял и deadline прошёл,
+          Alice может зарефандить. Тест создаёт lock на 4M, прокручивает часы anvil за 2-часовой
+          deadline (<code>advance_time!(rpc_url, 7201)</code>), затем вызывает
+          <code>refund_lock!</code>. Баланс Alice возвращается к стартовому, lock деактивирован.
+          User-side safety net на случай аутэйджа оператора.
+        </span>
+      </div>
+      <div class="flow">
+        <span class="actor user">Alice</span>
+        <span class="arrow">&rarr;</span>
+        <span class="eth-op">refund(htlc_hash) (after deadline)</span>
+        <span class="arrow">&rarr;</span>
+        <span class="actor eth">BridgeHTLC</span>
+        <span class="arrow">&rarr;</span>
+        <span class="amount">+amount USDC → Alice</span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">post: alice_balance == alice_before</span>
+        <span class="assert-pill">post: lock_active == false</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">check_not_refunded detects Refunded event on anvil</span>
+        <span class="ru">check_not_refunded ловит событие Refunded на anvil</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Pairs with the user-refund test above. After Alice refunds, the verifier&rsquo;s
+          <code>HTTP.check_not_refunded/3</code> is called &mdash; same call shape as the
+          production cross-chain check. Returns <code>{:error, :ethereum_lock_refunded}</code>.
+          This is the wire-side proof that the second leg of the cross-chain check
+          (Group 2&rsquo;s <code>:ethereum_lock_refunded</code>) actually fires against a real
+          Ethereum log, not just a stub.
+        </span>
+        <span class="ru">
+          Парный к user-refund тесту выше. После рефанда Alice вызывается
+          <code>HTTP.check_not_refunded/3</code> у verifier&rsquo;а &mdash; та же форма вызова,
+          что и в prod cross-chain check. Возвращается <code>{:error, :ethereum_lock_refunded}</code>.
+          Это wire-side доказательство того, что вторая нога cross-chain check
+          (<code>:ethereum_lock_refunded</code> из Group 2) реально срабатывает против настоящего
+          Ethereum-лога, а не только против stub&rsquo;а.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">{:error, :ethereum_lock_refunded}</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">check_hash_not_used rejects after operator claims (claimerUsedHash)</span>
+        <span class="ru">check_hash_not_used отклоняет после клейма оператора (claimerUsedHash)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The third-leg pin against a real chain. Before the operator claim, the verifier&rsquo;s
+          <code>check_hash_not_used/3</code> returns <code>:ok</code>. After the operator claims
+          (which calls <code>claimerUsedHash[hash] = true</code> on the contract), the same
+          check at a later block returns <code>{:error, :hash_already_used_by_claimer}</code>.
+          Confirms the chain-side state lookup is wired up correctly all the way through.
+        </span>
+        <span class="ru">
+          Pin третьей ноги против настоящей цепи. До клейма оператора verifier&rsquo;ский
+          <code>check_hash_not_used/3</code> возвращает <code>:ok</code>. После клейма
+          (который выставляет <code>claimerUsedHash[hash] = true</code> на контракте) тот же
+          вызов на более позднем блоке возвращает <code>{:error, :hash_already_used_by_claimer}</code>.
+          Подтверждает, что chain-side state lookup провязан корректно до самого низа.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">verified.claimer_on_eth == operator_bin</span>
+        <span class="assert-pill">pre claim: check_hash_not_used == :ok</span>
+        <span class="assert-pill fail">post claim: {:error, :hash_already_used_by_claimer}</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+function setLang(lang) {
+  document.body.className = 'lang-' + lang;
+  document.documentElement.lang = lang;
+  document.getElementById('btn-en').className = 'lang-btn' + (lang === 'en' ? ' active' : '');
+  document.getElementById('btn-ru').className = 'lang-btn' + (lang === 'ru' ? ' active' : '');
+}
+
+// Highlight the TOC link of the group currently in view.
+(function () {
+  const groups = document.querySelectorAll('.group[id]');
+  const links = document.querySelectorAll('.toc nav a');
+  const linkById = {};
+  links.forEach(a => { linkById[a.getAttribute('href').slice(1)] = a; });
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const a = linkById[entry.target.id];
+        if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  groups.forEach(g => observer.observe(g));
+})();
+</script>
+</body>
+</html>

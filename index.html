@@ -103,6 +103,16 @@
   .toc nav a:hover { color: #e1e4e8; background: #161b22; }
   .toc nav a.active { color: #58a6ff; background: #161b22; border-left-color: #58a6ff; }
   @media (max-width: 1000px) { .toc { display: none; } .layout .container { max-width: 1200px; padding: 2rem; margin: 0 auto; } }
+
+  /* Subsystems strip — link to dedicated subsystem reports */
+  .subsystems { background: #0d1117; border-bottom: 1px solid #21262d; padding: 1rem 3rem; }
+  .subsystems-label { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem; }
+  .subsystems-cards { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+  .subsystem-card { display: flex; flex-direction: column; gap: 0.2rem; background: #161b22; border: 1px solid #30363d; border-left: 3px solid #0d9488; border-radius: 8px; padding: 0.6rem 1rem; text-decoration: none; transition: border-color 0.2s, background 0.2s; min-width: 220px; }
+  .subsystem-card:hover { border-color: #58a6ff; background: #1a2332; }
+  .subsystem-card .name { font-weight: 700; color: #5eead4; font-size: 0.92rem; }
+  .subsystem-card .meta { color: #8b949e; font-size: 0.75rem; }
+  .subsystem-card .arrow { color: #58a6ff; font-weight: 700; }
 </style>
 </head>
 <body class="lang-ru">
@@ -128,6 +138,25 @@
       <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
       <button class="lang-btn active" id="btn-ru" onclick="setLang('ru')">RU</button>
     </div>
+  </div>
+</div>
+
+<div class="subsystems">
+  <div class="subsystems-label">
+    <span class="en">Subsystems</span>
+    <span class="ru">Подсистемы</span>
+  </div>
+  <div class="subsystems-cards">
+    <a class="subsystem-card" href="bridge/">
+      <div class="name">
+        <span class="en">Bridge subsystem <span class="arrow">&rarr;</span></span>
+        <span class="ru">Подсистема моста <span class="arrow">&rarr;</span></span>
+      </div>
+      <div class="meta">
+        <span class="en">84 tests · BridgeRefillMint, CrossChainCheck, Verifier replay, state_root, EthereumRpc, PropCheck, anvil</span>
+        <span class="ru">84 теста · BridgeRefillMint, CrossChainCheck, Verifier replay, state_root, EthereumRpc, PropCheck, anvil</span>
+      </div>
+    </a>
   </div>
 </div>
 
