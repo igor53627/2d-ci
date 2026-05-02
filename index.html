@@ -129,7 +129,7 @@
   <div class="header-row">
     <div class="stats">
       <div class="stat"><div class="num">56</div><div class="label"><span class="en">Tests</span><span class="ru">Тесты</span></div></div>
-      <div class="stat"><div class="num">14</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
+      <div class="stat"><div class="num">15</div><div class="label"><span class="en">Groups</span><span class="ru">Группы</span></div></div>
       <div class="stat"><div class="num">56</div><div class="label" style="color:#3fb950"><span class="en">Passing</span><span class="ru">Пройдено</span></div></div>
       <div class="stat"><div class="num">0</div><div class="label" style="color:#f85149"><span class="en">Failing</span><span class="ru">Ошибки</span></div></div>
       <div class="stat"><div class="num">~2.7s</div><div class="label"><span class="en">Runtime</span><span class="ru">Время</span></div></div>
@@ -183,6 +183,7 @@
       <li><a href="#group-12"><span class="en">12. Anti-spam Throttle</span><span class="ru">12. Антиспам-throttle</span></a></li>
       <li><a href="#group-13"><span class="en">13. Security Audit</span><span class="ru">13. Аудит безопасности</span></a></li>
       <li><a href="#group-14"><span class="en">14. Tron protobuf precompile dispatch</span><span class="ru">14. Tron protobuf → precompile</span></a></li>
+      <li><a href="#group-15"><span class="en">15. Others</span><span class="ru">15. Прочее</span></a></li>
     </ul>
   </nav>
 </aside>
@@ -2209,6 +2210,163 @@
         <span class="assert-pill">pending count == 0</span>
         <span class="assert-pill">htlc_swaps count == 0</span>
         <span class="assert-pill">Alice balance unchanged</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="group" id="group-15">
+    <div class="group-title">
+      <span class="en">15. Others</span>
+      <span class="ru">15. Прочее</span>
+      <span class="badge proto-badge">
+        <span class="en">5 tests</span>
+        <span class="ru">5 тестов</span>
+      </span>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">malleable signature (high-s) rejected at RPC</span>
+        <span class="ru">malleable-подпись (high-s) отклоняется на уровне RPC</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Alice signs a transfer with the high-s variant of an otherwise valid signature
+          (the s component above secp256k1.n/2). The transaction is submitted via
+          `eth_sendRawTransaction`. The RPC layer rejects it before it ever reaches the
+          executor, returning JSON-RPC error code -32000. Alice's balance is unchanged,
+          confirming no state mutation took place. This closes a transaction-malleability
+          vector where the same logical tx could be re-broadcast under a different hash.
+        </span>
+        <span class="ru">
+          Alice подписывает перевод вариантом подписи с high-s (компонент s больше
+          secp256k1.n/2). Транзакция отправляется через `eth_sendRawTransaction`. RPC-слой
+          отклоняет её ещё до executor-а, возвращая JSON-RPC error код -32000. Баланс Alice
+          не меняется — никакой мутации стейта не произошло. Это закрывает вектор
+          malleability, при котором та же логическая транзакция могла бы быть
+          переотправлена под другим хэшем.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">resp.error.code == -32000</span>
+        <span class="assert-pill">Alice balance unchanged</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">cross-chain replay — rejected at executor even if bypassing RPC</span>
+        <span class="ru">cross-chain replay — отклоняется executor-ом даже в обход RPC</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Defense-in-depth: a transaction signed for a foreign chain_id is inserted directly
+          into `pending_transactions`, bypassing the RPC validation that would normally
+          reject it. After `produce_block`, the executor independently re-checks chain_id
+          and lands the tx with status=0; balances of Alice and Bob are unchanged. Confirms
+          the chain_id check is not RPC-only — even a malicious mempool injection can't
+          replay a foreign-chain tx onto our state.
+        </span>
+        <span class="ru">
+          Defense-in-depth: транзакция, подписанная под чужой chain_id, вставляется напрямую
+          в `pending_transactions` — в обход RPC-валидации, которая её обычно режет. После
+          `produce_block` executor самостоятельно перепроверяет chain_id и кладёт транзакцию
+          в блок со status=0; балансы Alice и Bob не меняются. Подтверждает, что проверка
+          chain_id не только в RPC — даже вредоносное прямое внедрение в mempool не сможет
+          replay-нуть чужую транзакцию на наш стейт.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">tx.status == 0</span>
+        <span class="assert-pill">Alice balance unchanged</span>
+        <span class="assert-pill">Bob balance unchanged</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">operator cannot transfer to a non-precompile address</span>
+        <span class="ru">operator-аккаунт не может слать на обычный адрес</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          The operator account is funded and submits a plain transfer to Bob (a regular EOA).
+          After block production the receipt has `status == "0x0"` — the executor refuses to
+          credit a non-precompile destination from the operator account. Operator's balance
+          is unchanged; Bob's balance stays at its pre-funded value. This enforces the
+          invariant that operator funds can only flow into precompile sinks (HTLC, bridge),
+          never to user accounts directly.
+        </span>
+        <span class="ru">
+          Operator-аккаунт пополнен и отправляет обычный перевод Bob-у (обычная EOA).
+          После сборки блока receipt имеет `status == "0x0"` — executor отказывается
+          зачислять с operator-аккаунта на не-precompile-адрес. Баланс operator-а не
+          меняется; баланс Bob-а остаётся на пред-funded значении. Это закрепляет
+          инвариант: средства operator-а могут утекать только в precompile-stoки
+          (HTLC, bridge), но не напрямую на пользовательские аккаунты.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill fail">receipt.status == 0x0</span>
+        <span class="assert-pill">operator balance unchanged</span>
+        <span class="assert-pill">Bob balance unchanged</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">operator CAN call HTLC precompile (lock)</span>
+        <span class="ru">operator-у разрешён вызов HTLC-precompile (lock)</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Counterpart to the previous test: the operator account submits a transaction
+          targeting the HTLC precompile address with a properly-encoded `lock(...)` selector
+          and arguments. After block production the receipt is `status == "0x1"` — the
+          precompile destination is on the operator allow-list, so the call succeeds and
+          materialises an htlc_swaps row. Confirms the operator restriction is targeted
+          (only non-precompile destinations are blocked), not a blanket freeze.
+        </span>
+        <span class="ru">
+          Парный тест к предыдущему: operator-аккаунт отправляет транзакцию с правильно
+          закодированным селектором `lock(...)` и аргументами на адрес HTLC-precompile-а.
+          После сборки блока receipt имеет `status == "0x1"` — precompile-адрес в allow-list-е
+          для operator-а, вызов проходит и появляется строка в htlc_swaps. Подтверждает,
+          что operator-ограничение точечное (блокируются только не-precompile-направления),
+          а не полная заморозка аккаунта.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">receipt.status == 0x1</span>
+        <span class="assert-pill">to == HTLC precompile</span>
+      </div>
+    </div>
+
+    <div class="test-card">
+      <div class="test-name"><span class="pass">PASS</span>
+        <span class="en">non-operator accounts transfer freely</span>
+        <span class="ru">обычные аккаунты переводят свободно</span>
+      </div>
+      <div class="explanation">
+        <span class="en">
+          Sanity-check that the operator destination check is scoped to the operator account
+          alone. Alice (a regular user account) sends 100 USD-stable to Bob via a plain
+          transfer; the receipt is `status == "0x1"` and Bob's balance increases by exactly
+          100. Confirms ordinary user flows aren't affected by the operator allow-list — the
+          restriction is identity-keyed on the sender, not a global rule.
+        </span>
+        <span class="ru">
+          Sanity-check, что проверка direction-а у operator-а скоупирована только на
+          operator-аккаунт. Alice (обычный пользовательский аккаунт) отправляет 100 USD-stable
+          Bob-у обычным переводом; receipt имеет `status == "0x1"`, и баланс Bob-а
+          увеличивается ровно на 100. Подтверждает, что обычные пользовательские сценарии не
+          задеты operator-ограничением — правило ключируется по identity отправителя, а не
+          глобально.
+        </span>
+      </div>
+      <div class="assertions">
+        <span class="assert-pill">receipt.status == 0x1</span>
+        <span class="assert-pill">Bob balance += 100</span>
       </div>
     </div>
   </div>
